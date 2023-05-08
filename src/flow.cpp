@@ -1,11 +1,13 @@
 // #include <Arduino.h>
 #include "flow.h"
+#include "PinChangeInterrupt.h"
 // Создаем конструкторы класса, для начальной установки
 // Если создается пустой класс, то по умолчанию задается ножка 18 на вход
 FlowMeter::FlowMeter(){
     pinFlowMeter = 18;
     statusFlowMeter = false;
     flowRate = 0;
+    errorFlow= 0x00;
     pinMode(pinFlowMeter, INPUT_PULLUP);
     digitalWrite(pinFlowMeter, HIGH); 
 }
@@ -14,21 +16,67 @@ FlowMeter::FlowMeter(byte ePin, bool eStatus){
     pinFlowMeter = ePin;
     statusFlowMeter = eStatus;
     flowRate = 0;
+    errorFlow = 0x00;
     pinMode(pinFlowMeter, INPUT_PULLUP);
     digitalWrite(pinFlowMeter, HIGH); 
 }
+// Здесь добавляем прерывания для всех расходомеров
+void FlowMeter::countFlow1(){
+    if(FlowMeter::instances[0] != NULL )
+        FlowMeter::instances[0]->countFlow();
+}
+void FlowMeter::countFlow2(){
+    if(FlowMeter::instances[1] != NULL )
+        FlowMeter::instances[1]->countFlow();
+}
+void FlowMeter::countFlow3(){
+    if(FlowMeter::instances[2] != NULL )
+        FlowMeter::instances[2]->countFlow();
+}
+void FlowMeter::countFlow4(){
+    if(FlowMeter::instances[3] != NULL )
+        FlowMeter::instances[3]->countFlow();
+}
+
+void FlowMeter::countFlow(){
+    flowFreq++;
+}
 // Включение прерывания для расходомера
 void FlowMeter::onIntFlowMeter(){
-    attachInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow, HIGH);
+    // attachInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow, HIGH);
+    switch(pinFlowMeter){
+        case flowSensor1:
+            attachPinChangeInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow1, RISING);
+            instances[0] = this;
+            break;
+        case flowSensor2:
+            attachPinChangeInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow2, RISING);
+            instances[1] = this;
+            break;
+        case flowSensor3:
+            attachPinChangeInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow3, RISING);
+            instances[2] = this;
+            break;
+        case flowSensor4:
+            attachPinChangeInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow4, RISING);
+            instances[3] = this;
+            break;
+    }
+    // attachPCINT(pinFlowMeter);
     currentTime = millis();
     loopTime = currentTime;
 }   
 // Выключение прерывания для расходомера
 void FlowMeter::offIntFlowMeter(){
-    detachInterrupt(digitalPinToInterrupt(pinFlowMeter));
+    // detachInterrupt(digitalPinToInterrupt(pinFlowMeter));
+    detachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter));
 }   
+// ISR(PCINT0_vect) {  // пины 8-13
+//     if(pinRead(FlowMeter;
+// }
 // Функция расчетов
 void FlowMeter::calcRateVolume(){
+
     if(statusFlowMeter == true){
         currentTime = millis();
         if (currentTime >= (loopTime + 1000))
@@ -44,7 +92,7 @@ void FlowMeter::calcRateVolume(){
         flowVolume = 0;
     }
     if(flowVolume > maxVolume){
-        errorValve |= eMaxVolume;
+        errorFlow |= eMaxVolume;
     }
 }
 // Функция получения расхода
@@ -69,9 +117,9 @@ void FlowMeter::offFlowMeter(){
 }
 // Функция получения ошибки
 byte FlowMeter::getError(){
-    return errorValve;
+    return errorFlow;
 }
 // Функция очистки ошибок
 void FlowMeter::clearError(){
-    errorValve = 0x00;
+    errorFlow = 0x00;
 }

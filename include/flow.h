@@ -1,13 +1,19 @@
 #include <Arduino.h>
+
 #define cFlowRatePule 7.5 // Уточнить константу
 // События
 #define eMaxVolume 0xE1 // Достигнут максимальный объем
+// Ножки расходомеров
+#define flowSensor1 18
+#define flowSensor2 19
+#define flowSensor3 20
+#define flowSensor4 21
 // Создаем класс расходомера
 class FlowMeter{
     // Задаем переменные и функции, которые будут доступны внутри класса (см. Инкапсуляция)
     private:
         byte pinFlowMeter; // Ножка клапана
-        byte errorValve; // Байт ошибок и статусов клапана
+        byte errorFlow; // Байт ошибок и статусов расходомера
         bool statusFlowMeter; // Текущий статус расходомера (Вкл/Выкл)
         uint16_t flowRate; // Расход
         uint16_t flowVolume; // Литр/час
@@ -15,10 +21,18 @@ class FlowMeter{
         uint32_t loopTime; // Время цикла
         uint16_t maxVolume;
 
-        static void countFlow();
+        volatile uint16_t flowFreq; // Частота
+        // Топорная привязка прерываний к классу, найти более простой способ
+        // Потому что для каждого клапана придется добавлять статичный метод
+        // и это изначально занимает много памяти
+        static FlowMeter * instances [4];
+        static void countFlow1();
+        static void countFlow2();
+        static void countFlow3();
+        static void countFlow4();
+        void countFlow();
     // Задаем переменные и функции, которые будут доступны вне класса
     public:        
-        static volatile uint16_t flowFreq; // Частота
         // Создаем конструкторы класса, для начальной установки
         // Если создается пустой класс, то по умолчанию задается ножка 18 на вход
         FlowMeter();
