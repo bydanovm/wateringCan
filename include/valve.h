@@ -13,67 +13,23 @@ class Valve {
     public:
         // Создаем конструкторы класса, для начальной установки
         // Если создается пустой класс, то по умолчанию задается ножка 10 на выход
-        Valve(){
-            pinValve = 10;
-            statusValve = false;
-            errorValve = 0x00;
-            permitionOpenValve = false;
-            remoteControl = false;
-            pinMode(pinValve, OUTPUT);
-        }
+        Valve();
         // Если создается класс с "надстройкой", то меняем значения по умолчанию на переданные
-        Valve(byte ePin, bool eStatus){
-            pinValve = ePin;
-            statusValve = eStatus;
-            errorValve = 0x00;
-            permitionOpenValve = false;
-            remoteControl = false;            
-            pinMode(pinValve, OUTPUT);
-        }
+        Valve(byte ePin, bool eStatus);
         // Функция открытия клапана
-        void openValve(){
-            if(errorValve == 0x00){
-                if(((statusValve == false) && (permitionOpenValve == true)) || (remoteControl == true)){
-                    statusValve = true;
-                    digitalWrite(pinValve, statusValve);
-                    errorValve = 0x01;
-                }
-                else{
-                    errorValve = 0xF1;
-                }
-            }
-        }
+        void openValve();
         // Функция закрытия клапана
-        void closeValve(){
-            if(errorValve == 0x00){
-                if(statusValve == true){
-                    statusValve = false;
-                    digitalWrite(pinValve, statusValve);
-                    errorValve = 0x02;
-                }
-                else{
-                    errorValve = 0xF2;
-                }
-            }
-        }
+        void closeValve();
         // Функция получения состояния клапана
-        bool getStatusValve(){
-            return statusValve;
-        }
+        bool getStatusValve();
+        // Функция получения разрешения на открытие
+        bool getPermitionOpenValve();
         // Функция установки разрешения на открытие
-        void setPermitionOpenValve(){
-            permitionOpenValve = true;
-        }
+        void setPermitionOpenValve();
         // Функция снятия разрешения на открытие
-        void unsetPermitionOpenValve(){
-            permitionOpenValve = false;
-        }
+        void unsetPermitionOpenValve();
         // Функция получения ошибки
-        byte getError(){
-            return errorValve;
-        }
+        byte getError();
         // Функция очистки ошибок
-        void clearError(){
-            errorValve = 0x00;
-        }
+        void clearError();
 };
