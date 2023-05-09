@@ -1,13 +1,14 @@
 #include <Arduino.h>
 
-#define cFlowRatePule 7.5 // Уточнить константу
+#define cFlowRatePule 1.0 // Уточнить константу
+#define cTime 250
 // События
 #define eMaxVolume 0xE1 // Достигнут максимальный объем
 // Ножки расходомеров
-#define flowSensor1 18
-#define flowSensor2 19
-#define flowSensor3 20
-#define flowSensor4 21
+#define flowSensor1 2
+#define flowSensor2 3
+#define flowSensor3 4
+#define flowSensor4 5
 // Создаем класс расходомера
 class FlowMeter{
     // Задаем переменные и функции, которые будут доступны внутри класса (см. Инкапсуляция)
@@ -16,9 +17,11 @@ class FlowMeter{
         byte errorFlow; // Байт ошибок и статусов расходомера
         bool statusFlowMeter; // Текущий статус расходомера (Вкл/Выкл)
         uint16_t flowRate; // Расход
-        uint16_t flowVolume; // Литр/час
+        uint16_t flowVolume; // Объем
+        uint16_t prevFlowRate; // Предыдущий расход
+        uint16_t prevFlowVolume; // Предыдущий объем
         uint32_t currentTime; // Текущее время
-        uint32_t loopTime; // Время цикла
+        // uint32_t loopTime; // Время цикла
         uint16_t maxVolume;
 
         volatile uint16_t flowFreq; // Частота
@@ -42,8 +45,8 @@ class FlowMeter{
         void onIntFlowMeter();
         // Выключение прерывания для расходомера
         void offIntFlowMeter();
-        // Функция расчетов
-        void calcRateVolume();
+        // Функция расчетов, возвращает бит изменения значения
+        bool calcRateVolume();
         // Функция получения расхода
         uint16_t getFlowRate();
         // Функция получения объема

@@ -38,10 +38,16 @@ void Valve::closeValve(){
             digitalWrite(pinValve, statusValve);
             // errorValve = 0x02;
         }
+        remoteControl = false;
         // else{
         //     errorValve = 0xF2;
         // }
     // }
+}
+// Экстренное открытие клапана
+void Valve::extOpenValve(){
+    remoteControl = true;
+    openValve();
 }
 // Функция получения состояния клапана
 bool Valve::getStatusValve(){

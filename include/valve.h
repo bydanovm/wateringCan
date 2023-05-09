@@ -20,6 +20,8 @@ class Valve {
         void openValve();
         // Функция закрытия клапана
         void closeValve();
+        // Экстренное открытие клапана
+        void extOpenValve();
         // Функция получения состояния клапана
         bool getStatusValve();
         // Функция получения разрешения на открытие
