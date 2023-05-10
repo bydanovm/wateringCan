@@ -57,6 +57,8 @@ class FlowMeter{
         void onFlowMeter();
         // Выключить вычисление расходомера
         void offFlowMeter();
+        // Включение расходомера и прерывания
+        void onFullFlowMeter();
         // Функция получения ошибки
         byte getError();
         // Функция очистки ошибок

@@ -80,22 +80,27 @@ bool FlowMeter::calcRateVolume(){
         // currentTime = millis();
         if (millis() >= (currentTime + cTime)) // Рассмотреть ситуацию, когда значение будет > 4 294 967 295 (50 дней)
         {
-            currentTime = millis();
-            Serial.println("flowFreq: " + (String)flowFreq);
-            prevFlowRate = flowFreq / cFlowRatePule; // Частота / cFlowRatePule = расход в л/мин
-            // Выводим значение по изменению
-            if (prevFlowRate != flowRate){
-                flowRate = prevFlowRate;
+            if(flowFreq != 0){
+                currentTime = millis();
+                // Serial.println("flowFreq: " + (String)flowFreq);
+                prevFlowRate = flowFreq / cFlowRatePule; // Частота / cFlowRatePule = расход в л/мин
+                // Выводим значение по изменению
+                if (prevFlowRate != flowRate){
+                    flowRate = prevFlowRate;
+                }
+                flowVolume += flowRate / 60; // Расчет объема
+                flowFreq = 0; // Сбрасываем счетчик тиков
                 result = true;
+            }else{
+                result = false;
             }
-            flowVolume += flowRate / 60; // Расчет объема
-            flowFreq = 0; // Сбрасываем счетчик тиков
         }
     }
     else{
         flowRate = 0;
         flowVolume = 0;
     }
+    // Формирование события о максимальном объёме
     if(flowVolume > maxVolume){
         errorFlow |= eMaxVolume;
     }
@@ -117,6 +122,10 @@ void FlowMeter::setMaxVolume(uint16_t _maxVolume){
 void FlowMeter::onFlowMeter(){
     flowVolume = 0;
     statusFlowMeter = true;
+}
+void FlowMeter::onFullFlowMeter(){
+    onIntFlowMeter();
+    onFlowMeter();
 }
 // Выключить вычисление расходомера
 void FlowMeter::offFlowMeter(){

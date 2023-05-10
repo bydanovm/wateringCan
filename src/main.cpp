@@ -35,6 +35,12 @@ void setup() {
   currentTime = millis();
   loopTime = currentTime;
   // pinMode(10, OUTPUT);
+  // Включение расходомера и прерывания на старте 
+  delay(100); // Задержка при пуске для выравнивания напряжения на ножках МК
+  flowMeter1.onFullFlowMeter();
+  flowMeter2.onFullFlowMeter();
+  flowMeter3.onFullFlowMeter();
+  flowMeter4.onFullFlowMeter();
 }
 void loop() {
   // currentTime = millis();
@@ -72,33 +78,36 @@ void loop() {
       if(memcmp(&bufStr[i],CLEAR,sizeof(CLEAR))==0){
         bClearing = true;
       }
-      
     }
   }
 
   // Получено значение начать операцию и операция еще не начата
   if(bStart == true && flStartOperation == false){ 
+    flowMeter1.clearError();
+    flowMeter2.clearError();
+    flowMeter3.clearError();
+    flowMeter4.clearError();
     // Включение прерывания и расчета на расходомерах
     // если соответствующий клапан будет в работе
     if(valve1.getPermitionOpenValve()){
       Serial.println("VALVE1 READY");
-      flowMeter1.onIntFlowMeter();
-      flowMeter1.onFlowMeter();
+      // flowMeter1.onIntFlowMeter();
+      // flowMeter1.onFlowMeter();
     }
     if(valve2.getPermitionOpenValve()){
       Serial.println("VALVE2 READY");
-      flowMeter2.onIntFlowMeter();
-      flowMeter2.onFlowMeter();
+      // flowMeter2.onIntFlowMeter();
+      // flowMeter2.onFlowMeter();
     }
     if(valve3.getPermitionOpenValve()){
       Serial.println("VALVE3 READY");
-      flowMeter3.onIntFlowMeter();
-      flowMeter3.onFlowMeter();
+      // flowMeter3.onIntFlowMeter();
+      // flowMeter3.onFlowMeter();
     }
     if(valve4.getPermitionOpenValve()){
       Serial.println("VALVE4 READY");
-      flowMeter4.onIntFlowMeter();
-      flowMeter4.onFlowMeter();
+      // flowMeter4.onIntFlowMeter();
+      // flowMeter4.onFlowMeter();
     }
     // Открываем клапаны которым выдано разрешение
     valve1.openValve();
@@ -134,14 +143,14 @@ void loop() {
   // ПРОМЫВКА
   if(bClearing == true){
     bClearing = false;
-    flowMeter1.onIntFlowMeter();
-    flowMeter1.onFlowMeter();
-    flowMeter2.onIntFlowMeter();
-    flowMeter2.onFlowMeter();
-    flowMeter3.onIntFlowMeter();
-    flowMeter3.onFlowMeter();
-    flowMeter4.onIntFlowMeter();
-    flowMeter4.onFlowMeter();
+    // flowMeter1.onIntFlowMeter();
+    // flowMeter1.onFlowMeter();
+    // flowMeter2.onIntFlowMeter();
+    // flowMeter2.onFlowMeter();
+    // flowMeter3.onIntFlowMeter();
+    // flowMeter3.onFlowMeter();
+    // flowMeter4.onIntFlowMeter();
+    // flowMeter4.onFlowMeter();
     valve1.extOpenValve();
     valve2.extOpenValve();
     valve3.extOpenValve();
@@ -168,16 +177,16 @@ void loop() {
     if(!valve4.getStatusValve())
       Serial.println("VALVE4 CLOSE");
 
-    // Выключаем расходомеры
-    flowMeter1.offFlowMeter();
-    flowMeter2.offFlowMeter();
-    flowMeter3.offFlowMeter();
-    flowMeter4.offFlowMeter();
-    // Выключение прерывания на расходомерах
-    flowMeter1.offIntFlowMeter();
-    flowMeter2.offIntFlowMeter();
-    flowMeter3.offIntFlowMeter();
-    flowMeter4.offIntFlowMeter();
+    // // Выключаем расходомеры
+    // flowMeter1.offFlowMeter();
+    // flowMeter2.offFlowMeter();
+    // flowMeter3.offFlowMeter();
+    // flowMeter4.offFlowMeter();
+    // // Выключение прерывания на расходомерах
+    // flowMeter1.offIntFlowMeter();
+    // flowMeter2.offIntFlowMeter();
+    // flowMeter3.offIntFlowMeter();
+    // flowMeter4.offIntFlowMeter();
 
     motor1.offMotor();
     if(!motor1.getStatusMotor())
@@ -203,25 +212,25 @@ void loop() {
   }
 
   // Произошло событие "Сделан максимальный объем на расходомере 1"
-  if((flowMeter1.getError() & eMaxVolume) == true){
+  if((flowMeter1.getError() & eMaxVolume) == true && flStartOperation){
     valve1.closeValve();
     if(!valve1.getStatusValve())
       Serial.println("VALVE1 CLOSE MAX");
   }
   // Произошло событие "Сделан максимальный объем на расходомере 2"
-  if((flowMeter2.getError() & eMaxVolume) == true){
+  if((flowMeter2.getError() & eMaxVolume) == true && flStartOperation){
     valve2.closeValve();
     if(!valve2.getStatusValve())
       Serial.println("VALVE2 CLOSE MAX");
   }
   // Произошло событие "Сделан максимальный объем на расходомере 3"
-  if((flowMeter3.getError() & eMaxVolume) == true){
+  if((flowMeter3.getError() & eMaxVolume) == true && flStartOperation){
     valve3.closeValve();
     if(!valve3.getStatusValve())
       Serial.println("VALVE3 CLOSE MAX");
   }
   // Произошло событие "Сделан максимальный объем на расходомере 4"
-  if((flowMeter4.getError() & eMaxVolume) == true){
+  if((flowMeter4.getError() & eMaxVolume) == true && flStartOperation){
     valve4.closeValve();
     if(!valve4.getStatusValve())
       Serial.println("VALVE4 CLOSE MAX");
