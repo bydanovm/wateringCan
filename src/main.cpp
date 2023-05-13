@@ -25,11 +25,91 @@ Valve valve2(7, false);
 Valve valve3(8, false);
 Valve valve4(9, false);
 
+// uint8_t Valve::staticCountPermValve;
+// uint8_t Valve::staticCountOpenValve;
+
 Motor motor1(13, false);
 
 uint32_t currentTime, loopTime;
 bool led13 = false;
 int tPWM = 0;
+
+bool bStartClear = false;
+bool bStartValve = false;
+uint8_t countPermValve = 0;
+void startOperation(){
+  if(bStart == true && flStartOperation == false){
+    // Получено значение начать операцию и операция еще не начата
+    if(bStartClear == false){ 
+      // Сброс ошибок на расходомерах
+      flowMeter1.clearError();
+      flowMeter2.clearError();
+      flowMeter3.clearError();
+      flowMeter4.clearError();
+      // Сброс значений на расходомерах
+      flowMeter1.onFlowMeter();
+      flowMeter2.onFlowMeter();
+      flowMeter3.onFlowMeter();
+      flowMeter4.onFlowMeter();
+      
+      if(valve1.getPermitionOpenValve())
+        Serial.println("VALVE1 READY");
+      if(valve2.getPermitionOpenValve())
+        Serial.println("VALVE2 READY");
+      if(valve3.getPermitionOpenValve())
+        Serial.println("VALVE3 READY");
+      if(valve4.getPermitionOpenValve())
+        Serial.println("VALVE4 READY");
+      bStartClear = true;
+    }
+
+    // Открытие задвижек
+    if(bStartValve == false){
+      // Если количество разрешенных клапанов больше одного
+      if(valve1.getCountPermValve() >= 1){
+        // Открываем клапаны которым выдано разрешение
+        valve1.openValve();
+        valve2.openValve();
+        valve3.openValve();
+        valve4.openValve();
+        // Если количество открытых клапанов равно количеству разрешенных,
+        // то переходим к следующему шагу запуска насоса
+        if(valve1.getCountOpenValve() == valve1.getCountPermValve())
+          bStartValve = true;
+      }
+      // Иначе - сбрасываем всё
+      else {
+        bStart = false;
+        bStartClear = false;
+      }
+    }
+
+    if(valve1.getStatusValve())
+      Serial.println("VALVE1 OPEN");
+    if(valve2.getStatusValve())
+      Serial.println("VALVE2 OPEN");
+    if(valve3.getStatusValve())
+      Serial.println("VALVE3 OPEN");
+    if(valve4.getStatusValve())
+      Serial.println("VALVE4 OPEN");
+      
+    // Если открыты все разрешенные клапана, то будет пуск насоса
+    if(bStart && bStartValve){
+      flStartOperation = true; // Флаг успешного пуска
+      motor1.onMotor();
+    }
+    // Иначе сбрасываем бит старта 
+    else { 
+      bStart = false;
+      Serial.println("FAIL START");
+    }
+
+    if(motor1.getStatusMotor())
+      Serial.println("MOTOR ON");
+
+  }
+}
+
 void setup() {
   Serial.begin(2400);
   currentTime = millis();
@@ -41,6 +121,11 @@ void setup() {
   flowMeter2.onFullFlowMeter();
   flowMeter3.onFullFlowMeter();
   flowMeter4.onFullFlowMeter();
+
+  valve1.setPermitionOpenValve();
+  valve2.setPermitionOpenValve();
+  valve3.setPermitionOpenValve();
+  valve4.setPermitionOpenValve();
 }
 void loop() {
   // currentTime = millis();
@@ -81,64 +166,7 @@ void loop() {
     }
   }
 
-  // Получено значение начать операцию и операция еще не начата
-  if(bStart == true && flStartOperation == false){ 
-    flowMeter1.clearError();
-    flowMeter2.clearError();
-    flowMeter3.clearError();
-    flowMeter4.clearError();
-    // Включение прерывания и расчета на расходомерах
-    // если соответствующий клапан будет в работе
-    if(valve1.getPermitionOpenValve()){
-      Serial.println("VALVE1 READY");
-      // flowMeter1.onIntFlowMeter();
-      // flowMeter1.onFlowMeter();
-    }
-    if(valve2.getPermitionOpenValve()){
-      Serial.println("VALVE2 READY");
-      // flowMeter2.onIntFlowMeter();
-      // flowMeter2.onFlowMeter();
-    }
-    if(valve3.getPermitionOpenValve()){
-      Serial.println("VALVE3 READY");
-      // flowMeter3.onIntFlowMeter();
-      // flowMeter3.onFlowMeter();
-    }
-    if(valve4.getPermitionOpenValve()){
-      Serial.println("VALVE4 READY");
-      // flowMeter4.onIntFlowMeter();
-      // flowMeter4.onFlowMeter();
-    }
-    // Открываем клапаны которым выдано разрешение
-    valve1.openValve();
-    valve2.openValve();
-    valve3.openValve();
-    valve4.openValve();
-
-    if(valve1.getStatusValve())
-      Serial.println("VALVE1 OPEN");
-    if(valve2.getStatusValve())
-      Serial.println("VALVE2 OPEN");
-    if(valve3.getStatusValve())
-      Serial.println("VALVE3 OPEN");
-    if(valve4.getStatusValve())
-      Serial.println("VALVE4 OPEN");
-    
-    // Если открыта хотя бы один клапан, то будет пуск насоса
-    if(valve1.getStatusValve() || valve2.getStatusValve() ||
-      valve3.getStatusValve() || valve4.getStatusValve()){
-      flStartOperation = true; // Флаг успешного пуска
-      motor1.onMotor();
-    }
-    // Иначе сбрасываем бит старта 
-    else { 
-      bStart = false;
-      Serial.println("FAIL START");
-    }
-
-    if(motor1.getStatusMotor())
-      Serial.println("MOTOR ON");
-  }
+  startOperation();
 
   // ПРОМЫВКА
   if(bClearing == true){
