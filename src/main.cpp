@@ -10,6 +10,9 @@ bool bClearing = false;
 bool bStop = false;
 bool flStartOperation = false;
 bool flEmergencyStop = false;
+bool bStartClear = false;
+bool bStartValve = false;
+uint32_t currentTime, loopTime = 0;
 String bufStr;
 // Инициализация объекта расходомера с вызовом конструктора класса FlowMeter(byte ePin, bool eStatus)
 // Очишаем экземпляры классов для 4 расходомеров
@@ -27,11 +30,12 @@ Valve valve4(9, false);
 
 Motor motor1(13, false);
 
-uint32_t currentTime, loopTime;
-bool led13 = false;
-int tPWM = 0;
+
+// Прототип функции НАЧАЛО РАБОТЫ
+void startOperation();
+
 void setup() {
-  Serial.begin(2400);
+  Serial.begin(9600);
   currentTime = millis();
   loopTime = currentTime;
   // pinMode(10, OUTPUT);
@@ -41,6 +45,11 @@ void setup() {
   flowMeter2.onFullFlowMeter();
   flowMeter3.onFullFlowMeter();
   flowMeter4.onFullFlowMeter();
+
+  valve1.setPermitionOpenValve();
+  valve2.setPermitionOpenValve();
+  valve3.setPermitionOpenValve();
+  valve4.setPermitionOpenValve();
 }
 void loop() {
   // currentTime = millis();
@@ -50,14 +59,20 @@ void loop() {
     // Данные с дисплея по UART
     // Считываем команды от дисплея и парсим их
     for(int i=0; i<bufStr.length(); i++){
-      if(memcmp(&bufStr[i],V1PERM,sizeof(V1PERM))==0)
+      if(memcmp(&bufStr[i],V1PERM,sizeof(V1PERM))==0){
         valve1.setPermitionOpenValve();
+        // Serial.println(valve1.getCountPermValve());
+        // Serial.println(valve1.countObjects);
+      }
       if(memcmp(&bufStr[i],V1UNPERM,sizeof(V1UNPERM))==0)
         valve1.unsetPermitionOpenValve();
       if(memcmp(&bufStr[i],V2PERM,sizeof(V2PERM))==0)
         valve2.setPermitionOpenValve();
-      if(memcmp(&bufStr[i],V2UNPERM,sizeof(V2UNPERM))==0)
+      if(memcmp(&bufStr[i],V2UNPERM,sizeof(V2UNPERM))==0){
         valve2.unsetPermitionOpenValve();
+        // Serial.println(valve1.getCountPermValve());
+        // Serial.println(valve1.countObjects);     
+      }   
       if(memcmp(&bufStr[i],V3PERM,sizeof(V3PERM))==0)
         valve3.setPermitionOpenValve();
       if(memcmp(&bufStr[i],V3UNPERM,sizeof(V3UNPERM))==0)
@@ -81,64 +96,8 @@ void loop() {
     }
   }
 
-  // Получено значение начать операцию и операция еще не начата
-  if(bStart == true && flStartOperation == false){ 
-    flowMeter1.clearError();
-    flowMeter2.clearError();
-    flowMeter3.clearError();
-    flowMeter4.clearError();
-    // Включение прерывания и расчета на расходомерах
-    // если соответствующий клапан будет в работе
-    if(valve1.getPermitionOpenValve()){
-      Serial.println("VALVE1 READY");
-      // flowMeter1.onIntFlowMeter();
-      // flowMeter1.onFlowMeter();
-    }
-    if(valve2.getPermitionOpenValve()){
-      Serial.println("VALVE2 READY");
-      // flowMeter2.onIntFlowMeter();
-      // flowMeter2.onFlowMeter();
-    }
-    if(valve3.getPermitionOpenValve()){
-      Serial.println("VALVE3 READY");
-      // flowMeter3.onIntFlowMeter();
-      // flowMeter3.onFlowMeter();
-    }
-    if(valve4.getPermitionOpenValve()){
-      Serial.println("VALVE4 READY");
-      // flowMeter4.onIntFlowMeter();
-      // flowMeter4.onFlowMeter();
-    }
-    // Открываем клапаны которым выдано разрешение
-    valve1.openValve();
-    valve2.openValve();
-    valve3.openValve();
-    valve4.openValve();
-
-    if(valve1.getStatusValve())
-      Serial.println("VALVE1 OPEN");
-    if(valve2.getStatusValve())
-      Serial.println("VALVE2 OPEN");
-    if(valve3.getStatusValve())
-      Serial.println("VALVE3 OPEN");
-    if(valve4.getStatusValve())
-      Serial.println("VALVE4 OPEN");
-    
-    // Если открыта хотя бы один клапан, то будет пуск насоса
-    if(valve1.getStatusValve() || valve2.getStatusValve() ||
-      valve3.getStatusValve() || valve4.getStatusValve()){
-      flStartOperation = true; // Флаг успешного пуска
-      motor1.onMotor();
-    }
-    // Иначе сбрасываем бит старта 
-    else { 
-      bStart = false;
-      Serial.println("FAIL START");
-    }
-
-    if(motor1.getStatusMotor())
-      Serial.println("MOTOR ON");
-  }
+  // НАЧАЛО РАБОТЫ
+  startOperation();
 
   // ПРОМЫВКА
   if(bClearing == true){
@@ -273,4 +232,71 @@ void loop() {
     // a[0][0] = (flow, 0)
     // a[1][1] = (v1, 0)
     // serial.output(valve1.status, flowMeter1.getFlowRate());
+}
+
+// НАЧАЛО РАБОТЫ
+void startOperation(){
+  if(bStart == true && flStartOperation == false){
+    // Получено значение начать операцию и операция еще не начата
+    if(bStartClear == false){ 
+      // Сброс ошибок на расходомерах
+      flowMeter1.clearError();
+      flowMeter2.clearError();
+      flowMeter3.clearError();
+      flowMeter4.clearError();
+      // Сброс значений на расходомерах
+      flowMeter1.onFlowMeter();
+      flowMeter2.onFlowMeter();
+      flowMeter3.onFlowMeter();
+      flowMeter4.onFlowMeter();
+      
+      if(valve1.getPermitionOpenValve())
+        Serial.println("VALVE1 READY");
+      if(valve2.getPermitionOpenValve())
+        Serial.println("VALVE2 READY");
+      if(valve3.getPermitionOpenValve())
+        Serial.println("VALVE3 READY");
+      if(valve4.getPermitionOpenValve())
+        Serial.println("VALVE4 READY");
+      bStartClear = true;
+    }
+
+    // Открытие задвижек
+    if(bStartValve == false){
+      // Если количество разрешенных клапанов больше одного
+      if(valve1.getCountPermValve() >= 1){
+        // Открываем клапаны которым выдано разрешение
+        valve1.openValve((uint32_t)2500);
+        valve2.openValve((uint32_t)5000);
+        valve3.openValve((uint32_t)7500);
+        valve4.openValve((uint32_t)10000);
+        // Если количество открытых клапанов равно количеству разрешенных,
+        // то переходим к следующему шагу запуска насоса
+        if(valve1.getCountOpenValve() == valve1.getCountPermValve()){
+          bStartValve = true;
+          bStartClear = false;
+        }
+      }
+      // Иначе - сбрасываем всё
+      else {
+        bStart = false;
+        bStartClear = false;
+      }
+    }
+      
+    // Если открыты все разрешенные клапана, то будет пуск насоса
+    if(bStart && bStartValve){
+      flStartOperation = true; // Флаг успешного пуска
+      motor1.onMotor();
+      bStartValve = false;
+    }
+    // Иначе сбрасываем бит старта 
+    // else { 
+    //   bStart = false;
+    //   Serial.println("FAIL START");
+    // }
+
+    if(motor1.getStatusMotor())
+      Serial.println("MOTOR ON");
+  }
 }
