@@ -41,10 +41,10 @@ void setup() {
   // pinMode(10, OUTPUT);
   // Включение расходомера и прерывания на старте 
   delay(100); // Задержка при пуске для выравнивания напряжения на ножках МК
-  flowMeter1.onFullFlowMeter();
-  flowMeter2.onFullFlowMeter();
-  flowMeter3.onFullFlowMeter();
-  flowMeter4.onFullFlowMeter();
+  // flowMeter1.onFullFlowMeter();
+  // flowMeter2.onFullFlowMeter();
+  // flowMeter3.onFullFlowMeter();
+  // flowMeter4.onFullFlowMeter();
 
   valve1.setPermitionOpenValve();
   valve2.setPermitionOpenValve();
@@ -207,31 +207,6 @@ void loop() {
     flStartOperation = false;
     bStop  = true;
   }
-  
-  // if(millis() >= (currentTime + cTime)){
-  //   currentTime = millis();
-  //   tPWM++;
-  //   if(tPWM > 2)
-  //     tPWM = 0;
-  //   // Serial.println(tPWM);
-  // }
-  // if(tPWM == 0)
-  //   analogWrite(10, 1);
-  // else if(tPWM == 1)
-  //   analogWrite(10, 2);
-  // else if(tPWM == 2)
-  //   analogWrite(10, 3);
-
-  // Serial.println("CIRCLE TIME: " + (String)currentTime);
-    // Экран передает в ЦПУ
-    // V1;1;V2;0;V3;1;V4;1;run;1;stop;0;promivka;0;
-    // ЦПУ передает в экран
-    // flow;0;V1;1;V2;0;V3;1;V4;1;run;0;stop;0;promivka;0;pressure;0;
-    // +
-    // 1010
-    // a[0][0] = (flow, 0)
-    // a[1][1] = (v1, 0)
-    // serial.output(valve1.status, flowMeter1.getFlowRate());
 }
 
 // НАЧАЛО РАБОТЫ
@@ -266,37 +241,37 @@ void startOperation(){
       // Если количество разрешенных клапанов больше одного
       if(valve1.getCountPermValve() >= 1){
         // Открываем клапаны которым выдано разрешение
-        valve1.openValve((uint32_t)2500);
-        valve2.openValve((uint32_t)5000);
-        valve3.openValve((uint32_t)7500);
-        valve4.openValve((uint32_t)10000);
+        valve1.openValve((uint32_t)250);
+        valve2.openValve((uint32_t)500);
+        valve3.openValve((uint32_t)750);
+        valve4.openValve((uint32_t)1000);
         // Если количество открытых клапанов равно количеству разрешенных,
         // то переходим к следующему шагу запуска насоса
         if(valve1.getCountOpenValve() == valve1.getCountPermValve()){
           bStartValve = true;
-          bStartClear = false;
         }
       }
       // Иначе - сбрасываем всё
       else {
         bStart = false;
         bStartClear = false;
+        bStartClear = false;
       }
     }
       
     // Если открыты все разрешенные клапана, то будет пуск насоса
     if(bStart && bStartValve){
-      flStartOperation = true; // Флаг успешного пуска
-      motor1.onMotor();
-      bStartValve = false;
+      motor1.onMotor(250);
+      // Проверка, что насос запустился
+      if(motor1.getStatusMotor() == true){
+        flStartOperation = true; // Флаг успешного пуска
+        bStartValve = false;
+      }
     }
     // Иначе сбрасываем бит старта 
     // else { 
     //   bStart = false;
     //   Serial.println("FAIL START");
     // }
-
-    if(motor1.getStatusMotor())
-      Serial.println("MOTOR ON");
   }
 }

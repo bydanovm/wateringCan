@@ -13,29 +13,34 @@ Motor::Motor(byte ePin, bool eStatus){
 }
 // Включить насос
 void Motor::onMotor(){
-    // if(errorMotor == 0x00){
-        if(statusMotor == false){
+    if(statusMotor == false){
+        statusMotor = true;
+        digitalWrite(pinMotor, statusMotor);
+    }
+}
+// Включить насос с задержкой
+void Motor::onMotor(uint32_t _delay){
+    if(statusMotor == false){
+        if(bDelay == false){
+            bDelay = true;
+            currentTime = millis();
+            // Serial.println(currentTime);
+        }
+        if (millis() >= (currentTime + _delay)) // Рассмотреть ситуацию, когда значение будет > 4 294 967 295 (50 дней)
+        {
             statusMotor = true;
             digitalWrite(pinMotor, statusMotor);
-            // errorMotor = 0x01;
+            bDelay = false;
+            Serial.println("MOTOR ON");
         }
-        // else{
-        //     errorMotor = 0xF1;
-        // }
-    // }
+    }
 }
 // Выключить насос
 void Motor::offMotor(){
-    // if(errorMotor == 0x00){
-        if(statusMotor == true){
-            statusMotor = false;
-            digitalWrite(pinMotor, statusMotor);
-            // errorMotor = 0x00;
-        }
-        // else{
-        //     errorMotor = 0xE1;
-        // }
-    // }
+    if(statusMotor == true){
+        statusMotor = false;
+        digitalWrite(pinMotor, statusMotor);
+    }
 }
 bool Motor::getStatusMotor(){
     return statusMotor;
