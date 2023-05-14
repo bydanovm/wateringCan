@@ -41,10 +41,10 @@ void setup() {
   // pinMode(10, OUTPUT);
   // Включение расходомера и прерывания на старте 
   delay(100); // Задержка при пуске для выравнивания напряжения на ножках МК
-  // flowMeter1.onFullFlowMeter();
-  // flowMeter2.onFullFlowMeter();
-  // flowMeter3.onFullFlowMeter();
-  // flowMeter4.onFullFlowMeter();
+  flowMeter1.onFullFlowMeter();
+  flowMeter2.onFullFlowMeter();
+  flowMeter3.onFullFlowMeter();
+  flowMeter4.onFullFlowMeter();
 
   valve1.setPermitionOpenValve();
   valve2.setPermitionOpenValve();
