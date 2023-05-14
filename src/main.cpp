@@ -255,7 +255,7 @@ void startOperation(){
       else {
         bStart = false;
         bStartClear = false;
-        bStartClear = false;
+        bStartValve = false;
       }
     }
       
@@ -266,6 +266,7 @@ void startOperation(){
       if(motor1.getStatusMotor() == true){
         flStartOperation = true; // Флаг успешного пуска
         bStartValve = false;
+        bStartClear = false;
       }
     }
     // Иначе сбрасываем бит старта 
