@@ -28,7 +28,7 @@ class Valve : public numcopies {
         // Функция открытия клапана
         void openValve();
         // Функция открытия клапана
-        void openValve(uint8_t);
+        void openValve(uint32_t);
         // Функция закрытия клапана
         void closeValve();
         // Экстренное открытие клапана
@@ -49,5 +49,4 @@ class Valve : public numcopies {
         uint8_t getCountPermValve();
         // Функция получения количества открытых клапанов
         uint8_t getCountOpenValve();
-
 };
