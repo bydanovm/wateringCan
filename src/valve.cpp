@@ -53,6 +53,8 @@ void Valve::closeValve(){
         digitalWrite(pinValve, statusValve);
         if(getCountOpenValve() > 0)
             staticCountOpenValveDecr();
+        Serial.println("VALVE CLOSE");
+
     }
     remoteControl = false;
 }

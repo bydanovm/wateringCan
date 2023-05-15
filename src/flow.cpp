@@ -83,12 +83,15 @@ bool FlowMeter::calcRateVolume(){
             if(flowFreq != 0){
                 currentTime = millis();
                 // Serial.println("flowFreq: " + (String)flowFreq);
-                prevFlowRate = flowFreq / cFlowRatePule; // Частота / cFlowRatePule = расход в л/мин
+                // Умножаем на 10, чтобы не было целой части в расчетах (экономим память и быстродействие)
+                tempFlowRate = flowFreq * uint16_t(cFlowRatePule * 10); // Имеется погрешность при преобразовании типов в расчётах
+                // Serial.println("tempFlowRate: " + (String)tempFlowRate);
+                prevFlowRate = tempFlowRate * 60; // Частота * cFlowRatePule * 60 = мл/мин
                 // Выводим значение по изменению
                 if (prevFlowRate != flowRate){
                     flowRate = prevFlowRate;
                 }
-                flowVolume += flowRate / 60; // Расчет объема
+                flowVolume += tempFlowRate; // Расчет объема - мл
                 flowFreq = 0; // Сбрасываем счетчик тиков
                 result = true;
             }else{
@@ -101,21 +104,22 @@ bool FlowMeter::calcRateVolume(){
         flowVolume = 0;
     }
     // Формирование события о максимальном объёме
-    if(flowVolume > maxVolume){
+    if(flowVolume > maxVolume * 10){
         errorFlow |= eMaxVolume;
+        // Serial.println("MAX" + (String)errorFlow);
     }
     return result;
 }
 // Функция получения расхода
-uint16_t FlowMeter::getFlowRate(){
-    return flowRate;
+uint32_t FlowMeter::getFlowRate(){
+    return flowRate / 10;
 }
 // Функция получения объема
-uint16_t FlowMeter::getVolume(){
-    return flowVolume;
+uint32_t FlowMeter::getVolume(){
+    return flowVolume / 10;
 }
 // Функция установки максимального объема
-void FlowMeter::setMaxVolume(uint16_t _maxVolume){
+void FlowMeter::setMaxVolume(uint32_t _maxVolume){
     maxVolume = _maxVolume;
 }
 // Включить вычисление расходомера и обнулить данные по обьему
