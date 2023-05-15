@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
-#define cFlowRatePule 1.0 // Уточнить константу
-#define cTime 250
+#define cFlowRatePule 1.2 // Уточнить константу
+#define cTime 1000
 // События
 #define eMaxVolume 0xE1 // Достигнут максимальный объем
 // Ножки расходомеров
@@ -16,13 +16,14 @@ class FlowMeter{
         byte pinFlowMeter; // Ножка клапана
         byte errorFlow; // Байт ошибок и статусов расходомера
         bool statusFlowMeter; // Текущий статус расходомера (Вкл/Выкл)
-        uint16_t flowRate; // Расход
-        uint16_t flowVolume; // Объем
-        uint16_t prevFlowRate; // Предыдущий расход
-        uint16_t prevFlowVolume; // Предыдущий объем
+        uint32_t tempFlowRate;
+        uint32_t flowRate; // Расход
+        uint32_t flowVolume; // Объем
+        uint32_t prevFlowRate; // Предыдущий расход
+        uint32_t prevFlowVolume; // Предыдущий объем
         uint32_t currentTime; // Текущее время
         // uint32_t loopTime; // Время цикла
-        uint16_t maxVolume;
+        uint32_t maxVolume;
 
         volatile uint16_t flowFreq; // Частота
         // Топорная привязка прерываний к классу, найти более простой способ
@@ -48,11 +49,11 @@ class FlowMeter{
         // Функция расчетов, возвращает бит изменения значения
         bool calcRateVolume();
         // Функция получения расхода
-        uint16_t getFlowRate();
+        uint32_t getFlowRate();
         // Функция получения объема
-        uint16_t getVolume();
+        uint32_t getVolume();
         // Функция установки максимального объема
-        void setMaxVolume(uint16_t _maxVolume);
+        void setMaxVolume(uint32_t _maxVolume);
         // Включить вычисление расходомера
         void onFlowMeter();
         // Выключить вычисление расходомера

@@ -16,6 +16,8 @@ class Motor {
         void onMotor(uint32_t _delay);
         // Выключить насос
         void offMotor();
+        // Выключить насос с задержкой
+        void offMotor(uint32_t _delay);
         // Статус насоса
         bool getStatusMotor();
         // Функция получения ошибки
