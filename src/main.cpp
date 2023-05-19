@@ -139,6 +139,7 @@ void loop() {
       bStart = false;
       flStartOperation = false;
       bStop  = true;
+      dysplayInitialise = false;
       stopOperation();
     }    
   }
