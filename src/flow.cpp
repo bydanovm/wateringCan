@@ -119,8 +119,13 @@ uint32_t FlowMeter::getVolume(){
     return flowVolume / 10;
 }
 // Функция установки максимального объема
-void FlowMeter::setMaxVolume(uint32_t _maxVolume){
+bool FlowMeter::setMaxVolume(uint32_t _maxVolume){
     maxVolume = _maxVolume;
+    return true;
+}
+// Возврат максимального обьема
+uint32_t FlowMeter::getMaxVolume(){
+    return maxVolume;
 }
 // Включить вычисление расходомера и обнулить данные по обьему
 void FlowMeter::onFlowMeter(){

@@ -11,13 +11,13 @@ class Motor {
         Motor();
         Motor(byte ePin, bool eStatus);
         // Включить насос
-        void onMotor();
+        bool onMotor();
         // Включить насос с задержкой
-        void onMotor(uint32_t _delay);
+        bool onMotor(uint32_t _delay);
         // Выключить насос
-        void offMotor();
+        bool offMotor();
         // Выключить насос с задержкой
-        void offMotor(uint32_t _delay);
+        bool offMotor(uint32_t _delay);
         // Статус насоса
         bool getStatusMotor();
         // Функция получения ошибки

@@ -12,15 +12,19 @@ Motor::Motor(byte ePin, bool eStatus){
     pinMode(pinMotor, OUTPUT);
 }
 // Включить насос
-void Motor::onMotor(){
+bool Motor::onMotor(){
+    bool result = false;
     if(statusMotor == false){
         statusMotor = true;
         digitalWrite(pinMotor, statusMotor);
-        Serial.println("MOTOR ON");
+        // Serial.println("MOTOR ON");
+        result = true;
     }
+    return result;
 }
 // Включить насос с задержкой
-void Motor::onMotor(uint32_t _delay){
+bool Motor::onMotor(uint32_t _delay){
+    bool result = false;
     if(statusMotor == false){
         if(bDelay == false){
             bDelay = true;
@@ -32,20 +36,26 @@ void Motor::onMotor(uint32_t _delay){
             statusMotor = true;
             digitalWrite(pinMotor, statusMotor);
             bDelay = false;
-            Serial.println("MOTOR ON");
+            // Serial.println("MOTOR ON");
+            result = true;
         }
     }
+    return result;
 }
 // Выключить насос
-void Motor::offMotor(){
+bool Motor::offMotor(){
+    bool result = false;
     if(statusMotor == true){
         statusMotor = false;
         digitalWrite(pinMotor, statusMotor);
-        Serial.println("MOTOR OFF");
+        // Serial.println("MOTOR OFF");
+        result = true;
     }
+    return result;
 }
 // Выключить насос по задержке
-void Motor::offMotor(uint32_t _delay){
+bool Motor::offMotor(uint32_t _delay){
+    bool result = false;
     if(bDelay == false){
         bDelay = true;
         currentTime = millis();
@@ -57,9 +67,11 @@ void Motor::offMotor(uint32_t _delay){
             statusMotor = false;
             digitalWrite(pinMotor, statusMotor);
             bDelay = false;
-            Serial.println("MOTOR OFF");
+            // Serial.println("MOTOR OFF");
+            result = true;
         }
     }
+    return result;
 }
 bool Motor::getStatusMotor(){
     return statusMotor;

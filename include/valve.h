@@ -26,13 +26,13 @@ class Valve : public numcopies {
         // Если создается класс с "надстройкой", то меняем значения по умолчанию на переданные
         Valve(byte ePin, bool eStatus);
         // Функция открытия клапана
-        void openValve();
+        bool openValve();
         // Функция открытия клапана
-        void openValve(uint32_t);
+        bool openValve(uint32_t);
         // Функция закрытия клапана
-        void closeValve();
+        bool closeValve();
         // Экстренное открытие клапана
-        void extOpenValve();
+        bool extOpenValve();
         // Функция получения состояния клапана
         bool getStatusValve();
         // Функция получения разрешения на открытие
