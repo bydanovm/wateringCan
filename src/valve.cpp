@@ -18,16 +18,20 @@ Valve::Valve(byte ePin, bool eStatus){
     pinMode(pinValve, OUTPUT);
 }
 // Функция открытия клапана
-void Valve::openValve(){
+bool Valve::openValve(){
+    bool result = false;
     if(((statusValve == false) && (permitionOpenValve == true)) || (remoteControl == true)){
         statusValve = true;
         digitalWrite(pinValve, statusValve);
         if(getCountOpenValve() < countObjects)
             staticCountOpenValveIncr();
+        result = true;
     }
+    return result;
 }
 // Функция открытия клапана с задержкой
-void Valve::openValve(uint32_t _delay){
+bool Valve::openValve(uint32_t _delay){
+    bool result = false;
     if(((statusValve == false) && (permitionOpenValve == true)) || (remoteControl == true)){
         if(bDelay == false){
             bDelay = true;
@@ -42,26 +46,33 @@ void Valve::openValve(uint32_t _delay){
                 staticCountOpenValveIncr();
             // currentTime = 0;
             bDelay = false;
-            Serial.println("VALVE OPEN");
+            // Serial.println("VALVE OPEN");
+            result = true;
         }
     }
+    return result;
 }
 // Функция закрытия клапана
-void Valve::closeValve(){
+bool Valve::closeValve(){
+    bool result = false;
     if(statusValve == true){
         statusValve = false;
         digitalWrite(pinValve, statusValve);
         if(getCountOpenValve() > 0)
             staticCountOpenValveDecr();
-        Serial.println("VALVE CLOSE");
-
+        // Serial.println("VALVE CLOSE");
+        result = true;
     }
     remoteControl = false;
+    return result;
 }
 // Экстренное открытие клапана
-void Valve::extOpenValve(){
+bool Valve::extOpenValve(){
+    bool result = false;
     remoteControl = true;
-    openValve();
+    if(openValve())
+        result = true;
+    return result;
 }
 // Функция получения состояния клапана
 bool Valve::getStatusValve(){

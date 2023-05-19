@@ -53,7 +53,9 @@ class FlowMeter{
         // Функция получения объема
         uint32_t getVolume();
         // Функция установки максимального объема
-        void setMaxVolume(uint32_t _maxVolume);
+        bool setMaxVolume(uint32_t _maxVolume);
+        // Возврать максимального обьема
+        uint32_t getMaxVolume();
         // Включить вычисление расходомера
         void onFlowMeter();
         // Выключить вычисление расходомера
