@@ -1,14 +1,13 @@
+#ifndef HEADER_FLOW
+#define HEADER_FLOW
+
 #include <Arduino.h>
+#include "pins.h"
 
 #define cFlowRatePule 1.2 // Уточнить константу
 #define cTime 1000
 // События
 #define eMaxVolume 0xE1 // Достигнут максимальный объем
-// Ножки расходомеров
-#define flowSensor1 2
-#define flowSensor2 3
-#define flowSensor3 4
-#define flowSensor4 5
 // Создаем класс расходомера
 class FlowMeter{
     // Задаем переменные и функции, которые будут доступны внутри класса (см. Инкапсуляция)
@@ -67,3 +66,5 @@ class FlowMeter{
         // Функция очистки ошибок
         void clearError();
 };
+
+#endif

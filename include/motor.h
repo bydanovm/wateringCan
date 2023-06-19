@@ -1,3 +1,6 @@
+#ifndef HEADER_MOTOR
+#define HEADER_MOTOR
+
 #include <Arduino.h>
 
 class Motor {
@@ -25,3 +28,5 @@ class Motor {
         // Функция очистки ошибок
         void clearError();
 };
+
+#endif

@@ -46,20 +46,20 @@ void FlowMeter::countFlow(){
 void FlowMeter::onIntFlowMeter(){
     // Serial.println(pinFlowMeter);
     switch(pinFlowMeter){
-        case flowSensor1:
+        case flowSensor1Pin:
             attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter), countFlow1, RISING);
             // Serial.println("interrupt on");
             instances[0] = this;
             break;
-        case flowSensor2:
+        case flowSensor2Pin:
             attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter), countFlow2, RISING);
             instances[1] = this;
             break;
-        case flowSensor3:
+        case flowSensor3Pin:
             attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter), countFlow3, RISING);
             instances[2] = this;
             break;
-        case flowSensor4:
+        case flowSensor4Pin:
             attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter), countFlow4, RISING);
             instances[3] = this;
             break;

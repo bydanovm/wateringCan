@@ -71,7 +71,7 @@ class Nextion{
 
   uint8_t buttonOnOff(String find_component, String unknown_component, uint8_t pin, int btn_prev_state);
 
-  boolean setComponentValue(String component, int value);
+  boolean setComponentValue(String component, uint32_t value);
 
   //boolean ack(void);//Deprecated
 

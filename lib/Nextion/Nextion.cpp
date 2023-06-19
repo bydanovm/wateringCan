@@ -81,7 +81,7 @@ uint8_t Nextion::buttonOnOff(String find_component, String unknown_component, ui
   return btn_state;
 }//end buttonOnOff
 
-boolean Nextion::setComponentValue(String component, int value){
+boolean Nextion::setComponentValue(String component, uint32_t value){
   String compValue = component +".val=" + value;//Set component value
   sendCommand(compValue.c_str());
   boolean acki = ack();

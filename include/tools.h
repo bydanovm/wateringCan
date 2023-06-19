@@ -1,3 +1,6 @@
+#ifndef HEADER_TOOLS
+#define HEADER_TOOLS
+
 #include <Arduino.h>
 // Класс для подсчет количества объектов класса
 class numcopies
@@ -13,3 +16,5 @@ public:
     ~numcopies() { m_count()--; }
     const size_t& countObjects = m_count();
 };
+
+#endif

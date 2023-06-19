@@ -1,3 +1,6 @@
+#ifndef HEADER_VALVE
+#define HEADER_VALVE
+
 #include <Arduino.h>
 #include <tools.h>
 // Создаем класс клапана
@@ -30,7 +33,9 @@ class Valve : public numcopies {
         // Функция открытия клапана
         bool openValve(uint32_t);
         // Функция закрытия клапана
-        bool closeValve();
+        bool closeValve();       
+        // Функция закрытия клапана
+        bool closeValve(uint32_t);
         // Экстренное открытие клапана
         bool extOpenValve();
         // Функция получения состояния клапана
@@ -50,3 +55,5 @@ class Valve : public numcopies {
         // Функция получения количества открытых клапанов
         uint8_t getCountOpenValve();
 };
+
+#endif

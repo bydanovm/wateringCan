@@ -66,6 +66,27 @@ bool Valve::closeValve(){
     remoteControl = false;
     return result;
 }
+bool Valve::closeValve(uint32_t _delay){
+    bool result = false;
+    if(statusValve == true){
+        if(bDelay == false){
+            bDelay = true;
+            currentTime = millis();
+        }
+        if (millis() >= (currentTime + _delay))
+        {
+            statusValve = false;
+            digitalWrite(pinValve, statusValve);
+            if(getCountOpenValve() > 0)
+                staticCountOpenValveDecr();
+            bDelay = false;
+            result = true;
+        }
+        remoteControl = false;
+    }
+    return result;  
+}
+
 // Экстренное открытие клапана
 bool Valve::extOpenValve(){
     bool result = false;
