@@ -32,6 +32,7 @@ class RelayIn {
         void onInt();       
         void offInt();
         bool getInt();
+        bool clearInt();
 };
 
 #endif

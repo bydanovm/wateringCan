@@ -7,14 +7,15 @@
         #define valve2Pin 3
         #define valve3Pin 4
         #define valve4Pin 5
-        #define pumpPin 6
-        #define flowSensor1Pin 7
-        #define flowSensor2Pin 8
-        #define flowSensor3Pin 9
-        #define flowSensor4Pin 10
+        #define clearExt 7
+        #define pumpPin 8
+        #define flowSensor1Pin 50
+        #define flowSensor2Pin 51
+        #define flowSensor3Pin 52
+        #define flowSensor4Pin 53
         // Определяем пины для кнопок "Пуск" и "Стоп"
-        #define buttonPinStart 11
-        #define buttonPinStop 12
+        #define buttonPinStart 10
+        #define buttonPinStop 11
 
     // Вариант распиновки для UNO
     #elif __AVR_ATmega328P__

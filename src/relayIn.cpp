@@ -13,6 +13,7 @@ RelayIn::RelayIn(byte _pin, byte _mode){
     pinMode(pin, mode);
 }
 bool RelayIn::getCondition(void){
+    condition = digitalRead(pin);
     return condition;
 }
 
@@ -31,7 +32,7 @@ void RelayIn::onInt(){
                 #if defined(ESP8266)
                     attachInterrupt(inRelay1Pin, inRelay1Int, CHANGE);
                 #else
-                    attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin), inRelay1Int, CHANGE);
+                    attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pin), inRelay1Int, FALLING);
                 #endif
                 instances[0] = this;
                 break;
@@ -98,9 +99,14 @@ void RECIEVE_ATTR RelayIn::inRelay4Int(){
 }
 
 void RelayIn::intRising(){
-    intFlag = digitalRead(pin);
+    // intFlag = digitalRead(pin);
+    intFlag = true;
 }
 
 bool RelayIn::getInt(){
     return intFlag;
+}
+
+bool RelayIn::clearInt(){
+    intFlag = false;
 }

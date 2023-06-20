@@ -1,5 +1,5 @@
 // #define SIM_FLOW // Симуляция расхода через ШИМ
-// #define DEBUG_HMI // Отладка на дисплее
+#define DEBUG_HMI // Отладка на дисплее
 
 #include <Arduino.h>
 
@@ -10,6 +10,7 @@
 #include "flow.h"
 #include "motor.h"
 #include "relayIn.h"
+#include "relayOut.h"
 
 static bool systemInitialise = false;
 static bool dysplayInitialise = false;  
@@ -19,18 +20,23 @@ static uint32_t prevValue = 0;
 
 bool bStart = false;
 bool bClearing = false;
+bool bClearingExt = false;
 bool bStop = false;
 bool flStartOperation = false;
 bool flEmergencyStop = false;
 bool bStartClear = false;
 bool bStartValve = false;
+bool flButtonStartPressed, flButtonStopPressed = false;
 uint32_t currentTime = 0;
 
-Nextion myNextion(portHMI, 115200);
+Nextion myNextion(portHMI, 9600);
 
 RelayIn * RelayIn::instances[4] = {NULL, NULL};
 RelayIn buttonStart = RelayIn(buttonPinStart, INPUT_PULLUP); // Старт
 RelayIn buttonStop = RelayIn(buttonPinStop, INPUT_PULLUP); // Стоп
+
+// Выходное реле
+RelayOut clearingExtLamp = RelayOut(clearExt, OUTPUT);
 
 // Инициализация объекта расходомера с вызовом конструктора класса FlowMeter(byte ePin, bool eStatus)
 // Очишаем экземпляры классов для 4 расходомеров
@@ -54,17 +60,18 @@ void messageDysplay();
 void startOperation();
 void stopOperation();
 void clearing();
+void clearingExt();
 void calculate();
 // Проверка срабатывания кнопок
 void getRelay();
 
 void setup() {
-  // Serial.begin(115200);
+  Serial.begin(115200);
   myNextion.beginCom();
   myNextion.init();
 
-  buttonStart.onInt();
-  buttonStop.onInt();
+  // buttonStart.onInt();
+  // buttonStop.onInt();
 
   currentTime = millis();
 
@@ -131,7 +138,7 @@ void loop() {
     if(bStart == true && motor1.getStatusMotor() && 
         !(valve1.getStatusValve() || valve2.getStatusValve() ||
         valve3.getStatusValve() || valve4.getStatusValve())){
-      if(motor1.offMotor(1000)){
+      if(motor1.offMotor(pumpStopDelay)){
         myNextion.setComponentValue(M1,STOP);
         myNextion.setComponentValue(RUNSYS,STOP);
         myNextion.sendCommand("vis runProc,0");
@@ -148,13 +155,18 @@ void loop() {
     }
     // Проверка связи с экраном каждые 10 секунд и обновление в случае связи
     // Если связи нет, то аварийный останов
-    if(!testComm(10000)){
-      bStart = false;
-      flStartOperation = false;
-      bStop  = true;
-      dysplayInitialise = false;
-      testCommStatic = false;
-      stopOperation();
+    // if(!testComm(10000)){
+    //   bStart = false;
+    //   flStartOperation = false;
+    //   bStop  = true;
+    //   dysplayInitialise = false;
+    //   testCommStatic = false;
+    //   stopOperation();
+    // }
+    if (millis() >= (currentTime + 1000)) // Рассмотреть ситуацию, когда значение будет > 4 294 967 295 (50 дней)
+    {
+        currentTime = millis();
+        Serial.println(flStartOperation);
     }
   }
 }
@@ -328,7 +340,7 @@ void messageDysplay(){
         bStart = true;
         bStop  = false;
       }
-      if(message == STOPHMI || message == STPCLR){
+      if(message == STOPHMI || message == STPCLR || message == STPCLREXT){
         bStart = false;
         flStartOperation = false;
         bStop  = true;
@@ -341,6 +353,15 @@ void messageDysplay(){
       }
       else if(message == CLEAR && flStartOperation){
         myNextion.setComponentValue(CLRBTN, 0);
+      }
+      if(message == CLEAREXT && !flStartOperation){
+        bClearingExt = true;
+        bStart = false;
+        flStartOperation = false;
+        bStop  = false;
+      }
+      else if(message == CLEAREXT && flStartOperation){
+        myNextion.setComponentValue(CLRBTNEXT, 0);
       }
       if(message == UPDVOL){
         flowMeter1.setMaxVolume(myNextion.getComponentValue(VOL1MAX));
@@ -407,17 +428,50 @@ void messageDysplay(){
       message = "";
     }
 }
+bool stopButtonPressed = false;
 // Проверка срабатывания кнопок
 void getRelay(){
-  if(buttonStart.getInt() && !bStart){
+  // if(buttonStart.getInt() && !bStart && !stopButtonPressed){
+  //   buttonStart.clearInt();
+  //   Serial.print("START");
+  //   bStart = true;
+  //   bStop  = false;
+  // }
+  // if(buttonStop.getInt() && !bStop && !stopButtonPressed){
+  //   buttonStop.clearInt();
+  //   Serial.print("STOP");
+  //   bStart = false;
+  //   flStartOperation = false;
+  //   bStop  = true;
+  //   stopButtonPressed = true;
+  // }
+  // else if(buttonStop.getInt() && stopButtonPressed){
+  //   stopButtonPressed = false;
+  //   buttonStop.clearInt();
+  // }
+  if(!buttonStart.getCondition() && !flButtonStartPressed && !flButtonStopPressed){
+    Serial.print("START");
+    flButtonStartPressed = true;
     bStart = true;
     bStop  = false;
   }
-  if(buttonStop.getInt() && !bStop){
+  else if(buttonStart.getCondition() && flButtonStartPressed)
+  {
+    Serial.print("START unpress");
+    flButtonStartPressed = false;
+  }
+  if(!buttonStop.getCondition() && !flButtonStopPressed){
+    Serial.print("STOP");
+    flButtonStopPressed = true;
     bStart = false;
     flStartOperation = false;
     bStop  = true;
   }
+  else if(buttonStart.getCondition() && flButtonStopPressed){
+    Serial.print("stop unpress");
+    flButtonStopPressed = false;
+  }
+
 }
 // НАЧАЛО РАБОТЫ
 void startOperation(){
@@ -566,6 +620,8 @@ void stopOperation(){
       // myNextion.sendCommand("page 0");
       myNextion.sendCommand("vis runProc,0");
     }
+    if(clearingExtLamp.getCondition())
+      clearingExtLamp.close();
   }
 }
 void clearing(){
@@ -603,6 +659,24 @@ void clearing(){
     if(motor1.onMotor()){
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(M1,RUN);
+      #endif
+    }
+  }
+}
+void clearingExt(){
+  // ПРОМЫВКА ТОЛЬКО НАСОСОМ (БАЙПАС)
+  if(bClearingExt == true){
+    bClearingExt = false;
+    #ifdef DEBUG_HMI
+    myNextion.setComponentValue(V1,valve1.getStatusValve());
+    myNextion.setComponentValue(V2,valve2.getStatusValve());
+    myNextion.setComponentValue(V3,valve3.getStatusValve());
+    myNextion.setComponentValue(V4,valve4.getStatusValve());
+    #endif
+    if(motor1.onMotor()){
+      clearingExtLamp.extOpen();
+      #ifdef DEBUG_HMI
+      myNextion.setComponentValue(M1,motor1.getStatusMotor());
       #endif
     }
   }
