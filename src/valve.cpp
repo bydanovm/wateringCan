@@ -13,7 +13,7 @@ Valve::Valve(byte ePin, bool eStatus){
     pinValve = ePin;
     statusValve = eStatus;
     errorValve = 0x00;
-    permitionOpenValve = false;
+    permitionOpenValve = true;
     remoteControl = false;            
     pinMode(pinValve, OUTPUT);
 }
@@ -121,18 +121,36 @@ void Valve::staticCountOpenValveDecr(){
 }
 // Функция установки разрешения на открытие
 void Valve::setPermitionOpenValve(){
-    if(!getPermitionOpenValve()){
+    prevPerm = getPermitionOpenValve();
+    // if(!getPermitionOpenValve()){
         if(getCountPermValve() < countObjects)
             staticCountPermValveIncr();
         permitionOpenValve = true;
-    }
+    // }
 }
 // Функция снятия разрешения на открытие
 void Valve::unsetPermitionOpenValve(){
-    if(getPermitionOpenValve()){
+    prevPerm = getPermitionOpenValve();
+    // if(getPermitionOpenValve()){
         if(getCountPermValve()  > 0)
             staticCountPermValveDecr();
         permitionOpenValve = false;
+    // }
+}
+// Функция установки предыдушего состояния разрешения
+void Valve::setPrevPermitionOpenValve(){
+    if(permitionOpenValve != prevPerm){
+        permitionOpenValve = prevPerm;
+        if(getPermitionOpenValve()){
+            if(getCountPermValve() < countObjects){
+                staticCountPermValveIncr();
+            }
+        }
+        else{
+            if(getCountPermValve()  > 0){
+                staticCountPermValveDecr();
+            }
+        }
     }
 }
 // Функция получения ошибки

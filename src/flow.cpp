@@ -80,8 +80,10 @@ bool FlowMeter::calcRateVolume(){
         // currentTime = millis();
         if (millis() >= (currentTime + cTime)) // Рассмотреть ситуацию, когда значение будет > 4 294 967 295 (50 дней)
         {
+            currentTime = millis();
+            // Serial.println("flowFreq: " + (String)flowFreq);
             if(flowFreq != 0){
-                currentTime = millis();
+                // currentTime = millis();
                 // Serial.println("flowFreq: " + (String)flowFreq);
                 // Умножаем на 10, чтобы не было целой части в расчетах (экономим память и быстродействие)
                 tempFlowRate = flowFreq * uint16_t(cFlowRatePule * 10); // Имеется погрешность при преобразовании типов в расчётах

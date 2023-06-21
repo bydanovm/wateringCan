@@ -9,4 +9,12 @@
 
 #define maxVolumeInit 1000
 
+#ifdef __AVR_ATmega2560__
+    #define DEBUGLN(x) Serial.println(x)
+    #define DEBUG(x)   Serial.print(x)
+#else
+    #define DEBUGLN(x)
+    #define DEBUG(x)
+#endif
+
 #endif

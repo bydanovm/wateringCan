@@ -14,6 +14,7 @@ class Valve : public numcopies {
         byte errorValve; // Байт ошибок и статусов клапана
         uint32_t currentTime; // Текущее время
         bool bDelay; // Бит начала работы таймера    
+        bool prevPerm; // Прежнее состояние разрешения
         // Статика    
         static uint8_t staticCountPermValve; // Переменная количества разрешенных клапанов
         static uint8_t staticCountOpenValve; // Переменная количества открытых клапанов
@@ -46,6 +47,8 @@ class Valve : public numcopies {
         void setPermitionOpenValve();
         // Функция снятия разрешения на открытие
         void unsetPermitionOpenValve();
+        // Функция установки предыдушего состояния разрешения
+        void setPrevPermitionOpenValve();
         // Функция получения ошибки
         byte getError();
         // Функция очистки ошибок

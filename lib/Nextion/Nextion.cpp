@@ -124,7 +124,11 @@ unsigned int Nextion::getComponentValue(String component){
     unsigned int value = 0;
   sendCommand(getValue.c_str());
   uint8_t temp[8] = {0};
+  #ifdef SIMULATE_PANEL
+  nextion->setTimeout(40);
+  #else
   nextion->setTimeout(20);
+  #endif;
   if (sizeof(temp) != nextion->readBytes((char *)temp, sizeof(temp))){
     return 0;
   }//end if
