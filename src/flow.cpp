@@ -8,8 +8,8 @@ FlowMeter::FlowMeter(){
     statusFlowMeter = false;
     flowRate = 0;
     errorFlow= 0x00;
-    pinMode(pinFlowMeter, INPUT_PULLUP);
-    digitalWrite(pinFlowMeter, HIGH); 
+    pinMode(pinFlowMeter, INPUT);
+    // digitalWrite(pinFlowMeter, HIGH); 
 }
 // Если создается класс с "надстройкой", то меняем значения по умолчанию на переданные
 FlowMeter::FlowMeter(byte ePin, bool eStatus){
@@ -17,13 +17,14 @@ FlowMeter::FlowMeter(byte ePin, bool eStatus){
     statusFlowMeter = eStatus;
     flowRate = 0;
     errorFlow = 0x00;
-    pinMode(pinFlowMeter, INPUT_PULLUP);
-    digitalWrite(pinFlowMeter, HIGH); 
+    pinMode(pinFlowMeter, INPUT);
+    // digitalWrite(pinFlowMeter, HIGH); 
 }
 // Здесь добавляем прерывания для всех расходомеров
 void FlowMeter::countFlow1(){
-    if(FlowMeter::instances[0] != NULL )
+    if(FlowMeter::instances[0] != NULL ){
         FlowMeter::instances[0]->countFlow();
+    }
 }
 void FlowMeter::countFlow2(){
     if(FlowMeter::instances[1] != NULL )
@@ -43,73 +44,97 @@ void FlowMeter::countFlow(){
 }
 // Включение прерывания для расходомера
 void FlowMeter::onIntFlowMeter(){
-    // attachInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow, HIGH);
+    // Serial.println(pinFlowMeter);
     switch(pinFlowMeter){
-        case flowSensor1:
-            attachPinChangeInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow1, RISING);
+        case flowSensor1Pin:
+            attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter), countFlow1, RISING);
+            // Serial.println("interrupt on");
             instances[0] = this;
             break;
-        case flowSensor2:
-            attachPinChangeInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow2, RISING);
+        case flowSensor2Pin:
+            attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter), countFlow2, RISING);
             instances[1] = this;
             break;
-        case flowSensor3:
-            attachPinChangeInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow3, RISING);
+        case flowSensor3Pin:
+            attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter), countFlow3, RISING);
             instances[2] = this;
             break;
-        case flowSensor4:
-            attachPinChangeInterrupt(digitalPinToInterrupt(pinFlowMeter), countFlow4, RISING);
+        case flowSensor4Pin:
+            attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter), countFlow4, RISING);
             instances[3] = this;
             break;
     }
-    // attachPCINT(pinFlowMeter);
     currentTime = millis();
-    loopTime = currentTime;
+    // loopTime = currentTime;
 }   
 // Выключение прерывания для расходомера
 void FlowMeter::offIntFlowMeter(){
     // detachInterrupt(digitalPinToInterrupt(pinFlowMeter));
     detachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter));
 }   
-// ISR(PCINT0_vect) {  // пины 8-13
-//     if(pinRead(FlowMeter;
-// }
-// Функция расчетов
-void FlowMeter::calcRateVolume(){
-
+// Функция расчетов, возвращает бит изменения значения
+bool FlowMeter::calcRateVolume(){
+    bool result = false;
+    // Serial.println("statusFlowMeter: " + (String)statusFlowMeter);
     if(statusFlowMeter == true){
-        currentTime = millis();
-        if (currentTime >= (loopTime + 1000))
+        // currentTime = millis();
+        if (millis() >= (currentTime + cTime)) // Рассмотреть ситуацию, когда значение будет > 4 294 967 295 (50 дней)
         {
-            loopTime = currentTime;
-            flowRate = flowFreq / cFlowRatePule; // Частота / cFlowRatePule = расход в л/мин
-            flowVolume += flowRate / 60; // Расчет объема
-            flowFreq = 0; // Сбрасываем счетчик
+            if(flowFreq != 0){
+                currentTime = millis();
+                // Serial.println("flowFreq: " + (String)flowFreq);
+                // Умножаем на 10, чтобы не было целой части в расчетах (экономим память и быстродействие)
+                tempFlowRate = flowFreq * uint16_t(cFlowRatePule * 10); // Имеется погрешность при преобразовании типов в расчётах
+                // Serial.println("tempFlowRate: " + (String)tempFlowRate);
+                prevFlowRate = tempFlowRate * 60; // Частота * cFlowRatePule * 60 = мл/мин
+                // Выводим значение по изменению
+                if (prevFlowRate != flowRate){
+                    flowRate = prevFlowRate;
+                }
+                flowVolume += tempFlowRate; // Расчет объема - мл
+                flowFreq = 0; // Сбрасываем счетчик тиков
+                result = true;
+            }else{
+                result = false;
+            }
         }
     }
     else{
         flowRate = 0;
         flowVolume = 0;
     }
-    if(flowVolume > maxVolume){
+    // Формирование события о максимальном объёме
+    if(flowVolume > maxVolume * 10){
         errorFlow |= eMaxVolume;
+        // Serial.println("MAX" + (String)errorFlow);
     }
+    return result;
 }
 // Функция получения расхода
-uint16_t FlowMeter::getFlowRate(){
-    return flowRate;
+uint32_t FlowMeter::getFlowRate(){
+    return flowRate / 10;
 }
 // Функция получения объема
-uint16_t FlowMeter::getVolume(){
-    return flowVolume;
+uint32_t FlowMeter::getVolume(){
+    return flowVolume / 10;
 }
 // Функция установки максимального объема
-void FlowMeter::setMaxVolume(uint16_t _maxVolume){
+bool FlowMeter::setMaxVolume(uint32_t _maxVolume){
     maxVolume = _maxVolume;
+    return true;
 }
-// Включить вычисление расходомера
+// Возврат максимального обьема
+uint32_t FlowMeter::getMaxVolume(){
+    return maxVolume;
+}
+// Включить вычисление расходомера и обнулить данные по обьему
 void FlowMeter::onFlowMeter(){
+    flowVolume = 0;
     statusFlowMeter = true;
+}
+void FlowMeter::onFullFlowMeter(){
+    onIntFlowMeter();
+    onFlowMeter();
 }
 // Выключить вычисление расходомера
 void FlowMeter::offFlowMeter(){

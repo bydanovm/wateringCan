@@ -12,30 +12,66 @@ Motor::Motor(byte ePin, bool eStatus){
     pinMode(pinMotor, OUTPUT);
 }
 // Включить насос
-void Motor::onMotor(){
-    // if(errorMotor == 0x00){
-        if(statusMotor == false){
+bool Motor::onMotor(){
+    bool result = false;
+    if(statusMotor == false){
+        statusMotor = true;
+        digitalWrite(pinMotor, statusMotor);
+        // Serial.println("MOTOR ON");
+        result = true;
+    }
+    return result;
+}
+// Включить насос с задержкой
+bool Motor::onMotor(uint32_t _delay){
+    bool result = false;
+    if(statusMotor == false){
+        if(bDelay == false){
+            bDelay = true;
+            currentTime = millis();
+            // Serial.println(currentTime);
+        }
+        if (millis() >= (currentTime + _delay)) // Рассмотреть ситуацию, когда значение будет > 4 294 967 295 (50 дней)
+        {
             statusMotor = true;
             digitalWrite(pinMotor, statusMotor);
-            // errorMotor = 0x01;
+            bDelay = false;
+            // Serial.println("MOTOR ON");
+            result = true;
         }
-        // else{
-        //     errorMotor = 0xF1;
-        // }
-    // }
+    }
+    return result;
 }
 // Выключить насос
-void Motor::offMotor(){
-    // if(errorMotor == 0x00){
+bool Motor::offMotor(){
+    bool result = false;
+    if(statusMotor == true){
+        statusMotor = false;
+        digitalWrite(pinMotor, statusMotor);
+        // Serial.println("MOTOR OFF");
+        result = true;
+    }
+    return result;
+}
+// Выключить насос по задержке
+bool Motor::offMotor(uint32_t _delay){
+    bool result = false;
+    if(bDelay == false){
+        bDelay = true;
+        currentTime = millis();
+        // Serial.println(currentTime);
+    }
+    if (millis() >= (currentTime + _delay)) // Рассмотреть ситуацию, когда значение будет > 4 294 967 295 (50 дней)
+    {
         if(statusMotor == true){
             statusMotor = false;
             digitalWrite(pinMotor, statusMotor);
-            // errorMotor = 0x00;
+            bDelay = false;
+            // Serial.println("MOTOR OFF");
+            result = true;
         }
-        // else{
-        //     errorMotor = 0xE1;
-        // }
-    // }
+    }
+    return result;
 }
 bool Motor::getStatusMotor(){
     return statusMotor;

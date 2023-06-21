@@ -1,3 +1,6 @@
+#ifndef HEADER_MOTOR
+#define HEADER_MOTOR
+
 #include <Arduino.h>
 
 class Motor {
@@ -5,13 +8,19 @@ class Motor {
         byte pinMotor; // Ножка насоса
         byte errorMotor; // Байт ошибок и статусов насоса
         bool statusMotor; // Текущий статус насоса (Вкл/Выкл)
+        uint32_t currentTime; // Текущее время
+        bool bDelay; // Бит начала работы таймера    
     public:
         Motor();
         Motor(byte ePin, bool eStatus);
         // Включить насос
-        void onMotor();
+        bool onMotor();
+        // Включить насос с задержкой
+        bool onMotor(uint32_t _delay);
         // Выключить насос
-        void offMotor();
+        bool offMotor();
+        // Выключить насос с задержкой
+        bool offMotor(uint32_t _delay);
         // Статус насоса
         bool getStatusMotor();
         // Функция получения ошибки
@@ -19,3 +28,5 @@ class Motor {
         // Функция очистки ошибок
         void clearError();
 };
+
+#endif
