@@ -8,6 +8,7 @@
         #define valve3Pin 4
         #define valve4Pin 5
         #define pumpPin 8
+        #define clearExt 9
         #define flowSensor1Pin 50
         #define flowSensor2Pin 51
         #define flowSensor3Pin 52

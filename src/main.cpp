@@ -1,4 +1,4 @@
-#define SIM_FLOW // Симуляция расхода через ШИМ
+// #define SIM_FLOW // Симуляция расхода через ШИМ
 #define DEBUG_HMI // Отладка на дисплее
 
 #include <Arduino.h>
@@ -12,23 +12,25 @@
 #include "relayIn.h"
 #include "relayOut.h"
 
-static bool systemInitialise = false;
-static bool dysplayInitialise = false;  
-static bool testCommStatic = false;
-static uint32_t testValue = 1;
-static uint32_t prevValue = 0;
+static bool systemInitialise = false; // Инициализация системы
+static bool dysplayInitialise = false; // Инициализация дисплея
+static bool testCommStatic = false; // Связь с дисплеем
+static uint32_t testValue = 1; // Для связи с дисплеем, текущее значение
+static uint32_t prevValue = 0; // Для связи с дисплеем, прошлое значение
 
-bool bStart = false;
-bool bClearing, bClearingStop = false;
-bool bClearingExt, bClearingExtStop = false;
-bool bStop = false;
-bool flStartOperation = false;
-bool flEmergencyStop = false;
-bool flMaxLevel = false;
-bool bStartClear = false;
-bool bStartValve = false;
-bool flButtonStartPressed, flButtonStopPressed = false;
-uint32_t currentTime = 0;
+bool bStart = false; // Команда начала тех. процесса
+bool bClearing, bClearingStop = false; // Команды промывки
+bool bClearingExt, bClearingExtStop = false; // Команды останова промывок
+bool bStop = false; // Команда останова тех. процесса
+bool flStartOperation = false; // Флаг работы тех. процесса
+bool flEmergencyStop = false; // Флаг аварийного останова
+bool flClearing = false; // Флаг промыки
+bool flClearingExt = false; // Флаг промыки по байпасу
+bool bStartClear = false; // Флаг сброса объектов при старте
+bool bStartValve = false; // Флаг открытия клапанов при старте
+bool flButtonStartPressed, flButtonStopPressed = false; // Флаг кнопок СТАРТ/СТОП
+uint32_t currentTime, currentTime100ms = 0; // Текущее время исполнения
+// Структура участия клапанов в тех. процессе
 struct valvesInProcess
 {
   bool valve1;
@@ -42,7 +44,7 @@ struct valvesInProcess
 } valvesInProcess;
 
 
-Nextion myNextion(portHMI, 9600);
+Nextion myNextion(portHMI, nextionSpeed);
 
 RelayIn * RelayIn::instances[4] = {NULL, NULL};
 RelayIn buttonStart = RelayIn(buttonPinStart, INPUT_PULLUP); // Старт
@@ -54,10 +56,11 @@ RelayOut clearingExtLamp = RelayOut(clearExt, OUTPUT);
 // Инициализация объекта расходомера с вызовом конструктора класса FlowMeter(byte ePin, bool eStatus)
 // Очишаем экземпляры классов для 4 расходомеров
 FlowMeter * FlowMeter::instances[4] = {NULL, NULL};
-FlowMeter flowMeter1(flowSensor1Pin, false);
-FlowMeter flowMeter2(flowSensor2Pin, false);
-FlowMeter flowMeter3(flowSensor3Pin, false);
-FlowMeter flowMeter4(flowSensor4Pin, false);
+// Расходомеры: ПИН, СОСТОЯНИЕ, КОЭФФИЦИЕНТ, ВРЕМЯ ОПРОСА
+FlowMeter flowMeter1(flowSensor1Pin, false, koeffFlow1, timeLoopFlow1);
+FlowMeter flowMeter2(flowSensor2Pin, false, koeffFlow2, timeLoopFlow2);
+FlowMeter flowMeter3(flowSensor3Pin, false, koeffFlow3, timeLoopFlow3);
+FlowMeter flowMeter4(flowSensor4Pin, false, koeffFlow4, timeLoopFlow4);
 // Инициализация объекта клапана с вызовом конструктора класса Valve(byte ePin, bool eStatus)
 Valve valve1(valve1Pin, false);
 Valve valve2(valve2Pin, false);
@@ -67,16 +70,19 @@ Valve valve4(valve4Pin, false);
 Motor motor1(pumpPin, false);
 
 // Прототипы функций
-bool testComm(uint16_t _delay = 1000);
-bool initSystem();
-void messageDysplay();
-void startOperation();
-void stopOperation();
-void clearing();
-void clearingExt();
-void calculate();
-// Проверка срабатывания кнопок
-void getRelay();
+bool testComm(uint16_t _delay = 1000U);
+bool initSystem(); // Инициализация
+void messageDysplay(); // Сообщения от HMI
+void startOperation(); //СТАРТ
+void stopOperation(); // СТОП
+void clearing(); // ПРОМЫВКА
+void clearingExt(); // ПРОМЫВКА БАЙПАСС
+void calculate(); // РАСЧЕТы
+void getRelay(); // Проверка срабатывания кнопок
+void countFlowPulse1();
+void countFlowPulse2();
+void countFlowPulse3();
+void countFlowPulse4();
 
 void setup() {
   #ifdef __AVR_ATmega2560__
@@ -84,7 +90,11 @@ void setup() {
   #endif
   myNextion.beginCom();
   myNextion.init();
-
+  // Настраиваем расходомеры
+  flowMeter1.beginFlowMeter(countFlowPulse1);
+  flowMeter2.beginFlowMeter(countFlowPulse2);
+  flowMeter3.beginFlowMeter(countFlowPulse3);
+  flowMeter4.beginFlowMeter(countFlowPulse4);
   // buttonStart.onInt();
   // buttonStop.onInt();
 
@@ -94,7 +104,7 @@ void setup() {
   #if defined(SIM_FLOW)
   // ШИМ 9-10
   TCCR1A = 0b00000001;  // 8bit
-  TCCR1B = 0b00001010;  // x8 fast pwm
+  TCCR1B = 0b00001100;  // x1024 fast pwm
   analogWrite(9, 127);
   #endif
 
@@ -120,7 +130,7 @@ void loop() {
 
     // Произошло событие "Сделан максимальный объем на расходомере 1"
     if((flowMeter1.getError() & eMaxVolume) == eMaxVolume && flStartOperation && valve1.getStatusValve()){
-      if(valve1.closeValve()){
+      if(valve1.closeValve(valveMaxLevelCloseDelay)){
         valve1.unsetPermitionOpenValve();
         #ifdef DEBUG_HMI
         myNextion.setComponentValue(V1,CLOSE);
@@ -130,7 +140,7 @@ void loop() {
     }
     // Произошло событие "Сделан максимальный объем на расходомере 2"
     if((flowMeter2.getError() & eMaxVolume) == eMaxVolume && flStartOperation && valve2.getStatusValve()){
-      if(valve2.closeValve()){
+      if(valve2.closeValve(valveMaxLevelCloseDelay)){
         valve2.unsetPermitionOpenValve();
         #ifdef DEBUG_HMI
         myNextion.setComponentValue(V2,CLOSE);    
@@ -140,7 +150,7 @@ void loop() {
     }
     // Произошло событие "Сделан максимальный объем на расходомере 3"
     if((flowMeter3.getError() & eMaxVolume) == eMaxVolume && flStartOperation && valve3.getStatusValve()){
-      if(valve3.closeValve()){
+      if(valve3.closeValve(valveMaxLevelCloseDelay)){
         valve3.unsetPermitionOpenValve();
         #ifdef DEBUG_HMI
         myNextion.setComponentValue(V3,CLOSE);    
@@ -150,7 +160,7 @@ void loop() {
     }
     // Произошло событие "Сделан максимальный объем на расходомере 4"
     if((flowMeter4.getError() & eMaxVolume) == eMaxVolume && flStartOperation && valve4.getStatusValve()){
-      if(valve4.closeValve()){
+      if(valve4.closeValve(valveMaxLevelCloseDelay)){
         valve4.unsetPermitionOpenValve();
         #ifdef DEBUG_HMI
         myNextion.setComponentValue(V4,CLOSE);    
@@ -162,7 +172,7 @@ void loop() {
     if(bStart == true && motor1.getStatusMotor() && 
         !(valve1.getStatusValve() || valve2.getStatusValve() ||
         valve3.getStatusValve() || valve4.getStatusValve())){
-      if(motor1.offMotor(pumpStopDelay)){
+      if(motor1.offMotor(pumpMaxLevelOffDelay)){
         #ifdef DEBUG_HMI
         myNextion.setComponentValue(M1,STOP);
         myNextion.setComponentValue(RUNSYS,STOP);
@@ -193,7 +203,20 @@ void loop() {
     {
         currentTime = millis();
         DEBUGLN(flStartOperation);
+        // Отправка раз в секунду отладочных данных
+        #ifdef DEBUG_HMI
+        // Serial.println(flowMeter1.getVolume());
+        myNextion.setComponentValue(VOL1CUR,flowMeter1.getVolume());
+        myNextion.setComponentValue(VOL2CUR,flowMeter2.getVolume(10));
+        myNextion.setComponentValue(VOL3CUR,flowMeter3.getVolume(10));
+        myNextion.setComponentValue(VOL4CUR,flowMeter4.getVolume(10));
+        #endif
     }
+    if (millis() >= (currentTime100ms + 100)) // Рассмотреть ситуацию, когда значение будет > 4 294 967 295 (50 дней)
+    {
+        currentTime100ms = millis();
+        DEBUGLN(flowMeter1.totalFlowFreq);
+    }    
   }
 }
 
@@ -264,9 +287,9 @@ bool initSystem(){
       
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(VOL1CUR, flowMeter1.getVolume());
-      myNextion.setComponentValue(VOL2CUR, flowMeter2.getVolume());
-      myNextion.setComponentValue(VOL3CUR, flowMeter3.getVolume());
-      myNextion.setComponentValue(VOL4CUR, flowMeter4.getVolume());
+      myNextion.setComponentValue(VOL2CUR, flowMeter2.getVolume(10));
+      myNextion.setComponentValue(VOL3CUR, flowMeter3.getVolume(10));
+      myNextion.setComponentValue(VOL4CUR, flowMeter4.getVolume(10));
 
       myNextion.setComponentValue("maxVol1",flowMeter1.getMaxVolume());
       myNextion.setComponentValue("maxVol2",flowMeter2.getMaxVolume());
@@ -280,6 +303,7 @@ bool initSystem(){
       myNextion.setComponentValue(M1, motor1.getStatusMotor());
 
       myNextion.setComponentValue(CLRBTN, 0);
+      myNextion.setComponentValue(CLRBTNEXT, 0);
 
       myNextion.setComponentValue(RUNSYS,STOP);
 
@@ -481,6 +505,7 @@ void getRelay(){
   //   stopButtonPressed = false;
   //   buttonStop.clearInt();
   // }
+
   bool flButtonStart = buttonStart.getCondition();
   if(!flButtonStart && !flButtonStartPressed && !flButtonStopPressed){
     DEBUGLN("START");
@@ -500,6 +525,8 @@ void getRelay(){
     flButtonStopPressed = true;
     bStart = false;
     flStartOperation = false;
+    flClearing = false;
+    flClearingExt = false;
     bStop  = true;
   }
   else if(flButtonStop && flButtonStopPressed){
@@ -507,29 +534,28 @@ void getRelay(){
     // Serial.println("stop unpress"  + (String)flButtonStop);
     flButtonStopPressed = false;
   }
-
 }
 // НАЧАЛО РАБОТЫ
 void startOperation(){
   if(bStart == true && flStartOperation == false){
     // Получено значение начать операцию и операция еще не начата
     if(bStartClear == false){ 
-      // Сброс ошибок на расходомерах
-      flowMeter1.clearError();
-      flowMeter2.clearError();
-      flowMeter3.clearError();
-      flowMeter4.clearError();
       // Сброс значений на расходомерах
       flowMeter1.onFlowMeter();
       flowMeter2.onFlowMeter();
       flowMeter3.onFlowMeter();
       flowMeter4.onFlowMeter();
+      // Сброс ошибок на расходомерах
+      flowMeter1.clearError();
+      flowMeter2.clearError();
+      flowMeter3.clearError();
+      flowMeter4.clearError();
 
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(VOL1CUR, flowMeter1.getVolume());
-      myNextion.setComponentValue(VOL2CUR, flowMeter2.getVolume());
-      myNextion.setComponentValue(VOL3CUR, flowMeter3.getVolume());
-      myNextion.setComponentValue(VOL4CUR, flowMeter4.getVolume());
+      myNextion.setComponentValue(VOL2CUR, flowMeter2.getVolume(10));
+      myNextion.setComponentValue(VOL3CUR, flowMeter3.getVolume(10));
+      myNextion.setComponentValue(VOL4CUR, flowMeter4.getVolume(10));
       #endif
 
       bStartClear = true;
@@ -540,7 +566,7 @@ void startOperation(){
       // Если количество разрешенных клапанов больше одного
       if(valve1.getCountPermValve() >= 1){
         // Открываем клапаны которым выдано разрешение
-        if(valve1.openValve((uint32_t)valveOpenDelay)){
+        if(valve1.openValve((uint32_t)valveProcessOpenDelay)){
           valvesInProcess.valve1 = true;
         #ifdef DEBUG_HMI
           myNextion.setComponentValue(V1,OPEN);
@@ -549,7 +575,7 @@ void startOperation(){
         else{
           valvesInProcess.valve1 = false;
         }
-        if(valve2.openValve((uint32_t)valveOpenDelay)){
+        if(valve2.openValve((uint32_t)valveProcessOpenDelay)){
           valvesInProcess.valve2 = true;
         #ifdef DEBUG_HMI
           myNextion.setComponentValue(V2,OPEN);
@@ -558,7 +584,7 @@ void startOperation(){
         else{
           valvesInProcess.valve2 = false;
         }
-        if(valve3.openValve((uint32_t)valveOpenDelay)){
+        if(valve3.openValve((uint32_t)valveProcessOpenDelay)){
           valvesInProcess.valve3 = true;
         #ifdef DEBUG_HMI
           myNextion.setComponentValue(V3,OPEN);
@@ -567,7 +593,7 @@ void startOperation(){
         else{
           valvesInProcess.valve3 = false;
         }
-        if(valve4.openValve((uint32_t)valveOpenDelay)){
+        if(valve4.openValve((uint32_t)valveProcessOpenDelay)){
           valvesInProcess.valve4 = true;
         #ifdef DEBUG_HMI
           myNextion.setComponentValue(V4,OPEN);
@@ -592,7 +618,7 @@ void startOperation(){
       
     // Если открыты все разрешенные клапана, то будет пуск насоса
     if(bStart && bStartValve){
-      if(motor1.onMotor(pumpStartDelay)){
+      if(motor1.onMotor(pumpProcessOnDelay)){
       #ifdef DEBUG_HMI
         myNextion.setComponentValue(M1,RUN);
       #endif
@@ -615,6 +641,9 @@ void startOperation(){
     // else { 
     //   bStart = false;
     //   DEBUGLN("FAIL START");
+    //   #ifdef DEBUG_HMI
+    //   myNextion.setComponentValue(RUNSYS, STOP);
+    //   #endif
     // }
   }
 }
@@ -623,28 +652,28 @@ void stopOperation(){
     bStop = false;
     flStartOperation = false;
     // Закрываем клапаны
-    if(valve1.closeValve()){
+    if(valve1.closeValve(valveProcessCloseDelay)){
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(V1,CLOSE);
       #endif
     }
-    if(valve2.closeValve()){
+    if(valve2.closeValve(valveProcessCloseDelay)){
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(V2,CLOSE);
       #endif
     }
-    if(valve3.closeValve()){
+    if(valve3.closeValve(valveProcessCloseDelay)){
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(V3,CLOSE);
       #endif
     }
-    if(valve4.closeValve()){
+    if(valve4.closeValve(valveProcessCloseDelay)){
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(V4,CLOSE);
       #endif
     }
 
-    if(motor1.offMotor()){
+    if(motor1.offMotor(pumpProcessOffDelay)){
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(M1,STOP);
       myNextion.setComponentValue(RUNSYS, STOP);
@@ -671,9 +700,7 @@ void stopOperation(){
 }
 void clearing(){
   // ПРОМЫВКА
-  if(bClearing == true){
-    bClearing = false;
-
+  if(bClearing == true  && flClearing == false){
     if(valve1.extOpenValve()){
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(V1,OPEN);
@@ -694,14 +721,15 @@ void clearing(){
       myNextion.setComponentValue(V4,OPEN);
       #endif
     }
-    if(motor1.onMotor()){
+    if(motor1.onMotor(pumpClearOnDelay)){
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(M1,RUN);
       #endif
+      flClearing = true;
+      bClearing = false;
     }
   }
-  if(bClearingStop == true){
-    bClearingStop = false;
+  if(bClearingStop == true && flClearing == true){
     // Закрываем клапаны
     if(valve1.closeValve()){
       #ifdef DEBUG_HMI
@@ -724,69 +752,67 @@ void clearing(){
       #endif
     }
 
-    if(motor1.offMotor()){
+    if(motor1.offMotor(pumpClearOffDelay)){
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(M1,STOP);
       myNextion.setComponentValue(RUNSYS, STOP);
       #endif
+      flClearing = false;
+      bClearingStop = false;
     }
   }
 }
 void clearingExt(){
   // ПРОМЫВКА ТОЛЬКО НАСОСОМ (БАЙПАС)
-  if(bClearingExt == true){
-    bClearingExt = false;
-    #ifdef DEBUG_HMI
-    myNextion.setComponentValue(V1,valve1.getStatusValve());
-    myNextion.setComponentValue(V2,valve2.getStatusValve());
-    myNextion.setComponentValue(V3,valve3.getStatusValve());
-    myNextion.setComponentValue(V4,valve4.getStatusValve());
-    #endif
-    if(motor1.onMotor()){
+  if(bClearingExt == true && flClearingExt == false){
+    if(motor1.onMotor(pumpClearOnDelay)){
+      #ifdef DEBUG_HMI
+      myNextion.setComponentValue(V1,valve1.getStatusValve());
+      myNextion.setComponentValue(V2,valve2.getStatusValve());
+      myNextion.setComponentValue(V3,valve3.getStatusValve());
+      myNextion.setComponentValue(V4,valve4.getStatusValve());
+      #endif
       clearingExtLamp.extOpen();
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(M1,motor1.getStatusMotor());
       #endif
+      flClearingExt = true;
+      bClearingExt = false;
     }
   }
   
-  if(bClearingExtStop == true){
-    bClearingExtStop = false;
-
-    if(motor1.offMotor()){
+  if(bClearingExtStop == true && flClearingExt == true){
+    if(motor1.offMotor(pumpClearOffDelay)){
       clearingExtLamp.close();
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(M1,STOP);
       myNextion.setComponentValue(RUNSYS, STOP);
       #endif
+      flClearingExt = false;
+      bClearingExtStop = false;
     }
   }
 }
-// uint32_t countP;
+
 void calculate(){
   // Выполняем расчет расхода на расходомерах
-  if(flowMeter1.calcRateVolume()){
-    #ifdef DEBUG_HMI
-    myNextion.setComponentValue(VOL1CUR,flowMeter1.getVolume());
-    #endif
-    // myNextion.setComponentText(VOL1CUR,(String)flowMeter1.getVolume());
+  if(flClearing || flClearingExt || flStartOperation){
+    // if(flowMeter1.calcRateVolume()){}
+    if(flowMeter1.calcRateVolumeNew()){}
+    if(flowMeter2.calcRateVolume()){}
+    if(flowMeter3.calcRateVolume()){}
+    if(flowMeter4.calcRateVolume()){}
   }
-  if(flowMeter2.calcRateVolume()){
-    #ifdef DEBUG_HMI
-    myNextion.setComponentValue(VOL2CUR,flowMeter2.getVolume());
-    #endif
-    // myNextion.setComponentText(VOL2CUR,(String)flowMeter2.getVolume());
-  }
-  if(flowMeter3.calcRateVolume()){
-    #ifdef DEBUG_HMI
-    myNextion.setComponentValue(VOL3CUR,flowMeter3.getVolume());
-    #endif
-    // myNextion.setComponentText(VOL3CUR,(String)flowMeter3.getVolume());
-  }
-  if(flowMeter4.calcRateVolume()){
-    #ifdef DEBUG_HMI
-    myNextion.setComponentValue(VOL4CUR,flowMeter4.getVolume());
-    #endif
-    // myNextion.setComponentText(VOL4CUR,(String)flowMeter4.getVolume());
-  }
+}
+void countFlowPulse1(){
+  flowMeter1.countFlow();
+}
+void countFlowPulse2(){
+  flowMeter2.countFlow();
+}
+void countFlowPulse3(){
+  flowMeter3.countFlow();
+}
+void countFlowPulse4(){
+  flowMeter4.countFlow();
 }
