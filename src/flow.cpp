@@ -58,7 +58,6 @@ void FlowMeter::onIntFlowMeter(){
     switch(pinFlowMeter){
         case flowSensor1Pin:
             attachPinChangeInterrupt(digitalPinToPinChangeInterrupt(pinFlowMeter), countFlow1, RISING);
-            // Serial.println("interrupt on");
             instances[0] = this;
             break;
         case flowSensor2Pin:
@@ -75,7 +74,6 @@ void FlowMeter::onIntFlowMeter(){
             break;
     }
     currentTime = millis();
-    // loopTime = currentTime;
 }   
 void FlowMeter::beginFlowMeter(void (*userFunc)(void)){
     pinMode(pinFlowMeter, INPUT_PULLUP);
@@ -136,9 +134,7 @@ bool FlowMeter::calcRateVolumeNew(int32_t calibration){
         {
             currentTime = millis();
 
-            // flowVolume += flowFreq;
-            flowVolume += float((float)flowFreq / float(volumeIsLiter + calibration)) * 1000.0F;
-            // Serial.println("XXX:" + (String)(flowVolume));
+            flowVolume += float((float)flowFreq / float(koeff + calibration)) * 1000.0F;
             totalFlowFreq += flowFreq;
             flowFreq = 0;
             result = true;
@@ -177,7 +173,7 @@ void FlowMeter::onFlowMeter(){
     statusFlowMeter = true;
 }
 void FlowMeter::onFullFlowMeter(){
-    onIntFlowMeter();
+    // onIntFlowMeter();
     onFlowMeter();
 }
 // Выключить вычисление расходомера

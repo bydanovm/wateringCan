@@ -19,10 +19,10 @@
 
 #define nextionSpeed 9600 // Скорость порта с HMI
 
-#define koeffFlow1    1.2F     // Коэффициент расходомер 1
-#define koeffFlow2    1.2F     // Коэффициент расходомер 2
-#define koeffFlow3    1.2F     // Коэффициент расходомер 3
-#define koeffFlow4    1.2F     // Коэффициент расходомер 4
+#define koeffFlow1    1200     // Коэффициент расходомер 1
+#define koeffFlow2    1200     // Коэффициент расходомер 2
+#define koeffFlow3    1200     // Коэффициент расходомер 3
+#define koeffFlow4    1200     // Коэффициент расходомер 4
 #define timeLoopFlow1 50U      // Время опроса расходомера 1
 #define timeLoopFlow2 50U      // Время опроса расходомера 2
 #define timeLoopFlow3 50U      // Время опроса расходомера 3

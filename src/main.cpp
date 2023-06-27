@@ -95,6 +95,7 @@ void setup() {
   flowMeter2.beginFlowMeter(countFlowPulse2);
   flowMeter3.beginFlowMeter(countFlowPulse3);
   flowMeter4.beginFlowMeter(countFlowPulse4);
+
   // buttonStart.onInt();
   // buttonStop.onInt();
 
@@ -205,17 +206,19 @@ void loop() {
         DEBUGLN(flStartOperation);
         // Отправка раз в секунду отладочных данных
         #ifdef DEBUG_HMI
-        // Serial.println(flowMeter1.getVolume());
         myNextion.setComponentValue(VOL1CUR,flowMeter1.getVolume());
-        myNextion.setComponentValue(VOL2CUR,flowMeter2.getVolume(10));
-        myNextion.setComponentValue(VOL3CUR,flowMeter3.getVolume(10));
-        myNextion.setComponentValue(VOL4CUR,flowMeter4.getVolume(10));
+        myNextion.setComponentValue(VOL2CUR,flowMeter2.getVolume());
+        myNextion.setComponentValue(VOL3CUR,flowMeter3.getVolume());
+        myNextion.setComponentValue(VOL4CUR,flowMeter4.getVolume());
         #endif
     }
     if (millis() >= (currentTime100ms + 100)) // Рассмотреть ситуацию, когда значение будет > 4 294 967 295 (50 дней)
     {
         currentTime100ms = millis();
-        DEBUGLN(flowMeter1.totalFlowFreq);
+        DEBUGLN("Pulse1: " + (String)flowMeter1.totalFlowFreq);
+        DEBUGLN("Pulse2: " + (String)flowMeter2.totalFlowFreq);
+        DEBUGLN("Pulse3: " + (String)flowMeter3.totalFlowFreq);
+        DEBUGLN("Pulse4: " + (String)flowMeter4.totalFlowFreq);
     }    
   }
 }
@@ -242,10 +245,10 @@ bool testComm(uint16_t _delay){
 // Инициализация
 bool initSystem(){
   if(!systemInitialise){
-      flowMeter1.onFullFlowMeter();
-      flowMeter2.onFullFlowMeter();
-      flowMeter3.onFullFlowMeter();
-      flowMeter4.onFullFlowMeter();
+      flowMeter1.onFlowMeter();
+      flowMeter2.onFlowMeter();
+      flowMeter3.onFlowMeter();
+      flowMeter4.onFlowMeter();
 
       valve1.setPermitionOpenValve();
       valve2.setPermitionOpenValve();
@@ -287,9 +290,9 @@ bool initSystem(){
       
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(VOL1CUR, flowMeter1.getVolume());
-      myNextion.setComponentValue(VOL2CUR, flowMeter2.getVolume(10));
-      myNextion.setComponentValue(VOL3CUR, flowMeter3.getVolume(10));
-      myNextion.setComponentValue(VOL4CUR, flowMeter4.getVolume(10));
+      myNextion.setComponentValue(VOL2CUR, flowMeter2.getVolume());
+      myNextion.setComponentValue(VOL3CUR, flowMeter3.getVolume());
+      myNextion.setComponentValue(VOL4CUR, flowMeter4.getVolume());
 
       myNextion.setComponentValue("maxVol1",flowMeter1.getMaxVolume());
       myNextion.setComponentValue("maxVol2",flowMeter2.getMaxVolume());
@@ -485,26 +488,8 @@ void messageDysplay(){
       message = "";
     }
 }
-bool stopButtonPressed = false;
 // Проверка срабатывания кнопок
 void getRelay(){
-  // if(buttonStart.getInt() && !bStart && !stopButtonPressed){
-  //   buttonStart.clearInt();
-  //   DEBUGLN("START");  //   bStart = true;
-  //   bStop  = false;
-  // }
-  // if(buttonStop.getInt() && !bStop && !stopButtonPressed){
-  //   buttonStop.clearInt();
-  //   DEBUGLN("STOP");
-  //   bStart = false;
-  //   flStartOperation = false;
-  //   bStop  = true;
-  //   stopButtonPressed = true;
-  // }
-  // else if(buttonStop.getInt() && stopButtonPressed){
-  //   stopButtonPressed = false;
-  //   buttonStop.clearInt();
-  // }
 
   bool flButtonStart = buttonStart.getCondition();
   if(!flButtonStart && !flButtonStartPressed && !flButtonStopPressed){
@@ -540,11 +525,6 @@ void startOperation(){
   if(bStart == true && flStartOperation == false){
     // Получено значение начать операцию и операция еще не начата
     if(bStartClear == false){ 
-      // Сброс значений на расходомерах
-      flowMeter1.onFlowMeter();
-      flowMeter2.onFlowMeter();
-      flowMeter3.onFlowMeter();
-      flowMeter4.onFlowMeter();
       // Сброс ошибок на расходомерах
       flowMeter1.clearError();
       flowMeter2.clearError();
@@ -553,9 +533,9 @@ void startOperation(){
 
       #ifdef DEBUG_HMI
       myNextion.setComponentValue(VOL1CUR, flowMeter1.getVolume());
-      myNextion.setComponentValue(VOL2CUR, flowMeter2.getVolume(10));
-      myNextion.setComponentValue(VOL3CUR, flowMeter3.getVolume(10));
-      myNextion.setComponentValue(VOL4CUR, flowMeter4.getVolume(10));
+      myNextion.setComponentValue(VOL2CUR, flowMeter2.getVolume());
+      myNextion.setComponentValue(VOL3CUR, flowMeter3.getVolume());
+      myNextion.setComponentValue(VOL4CUR, flowMeter4.getVolume());
       #endif
 
       bStartClear = true;
@@ -796,13 +776,12 @@ void clearingExt(){
 
 void calculate(){
   // Выполняем расчет расхода на расходомерах
-  if(flClearing || flClearingExt || flStartOperation){
-    // if(flowMeter1.calcRateVolume()){}
+  // if(flClearing || flClearingExt || flStartOperation){
     if(flowMeter1.calcRateVolumeNew()){}
-    if(flowMeter2.calcRateVolume()){}
-    if(flowMeter3.calcRateVolume()){}
-    if(flowMeter4.calcRateVolume()){}
-  }
+    if(flowMeter2.calcRateVolumeNew()){}
+    if(flowMeter3.calcRateVolumeNew()){}
+    if(flowMeter4.calcRateVolumeNew()){}
+  // }
 }
 void countFlowPulse1(){
   flowMeter1.countFlow();
